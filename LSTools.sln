@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.30330.147
+# Visual Studio Version 17
+VisualStudioVersion = 17.6.33815.320
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LSLib", "LSLib\LSLib.csproj", "{46372C50-4288-4B8E-AF21-C934560600E0}"
 EndProject
@@ -31,7 +31,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StatParser", "StatParser\St
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnpackGrid", "UnpackGrid\UnpackGrid.csproj", "{1948A6AF-41EE-4711-B617-B5CBA8434013}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TerrainFixup", "TerrainFixup\TerrainFixup.csproj", "{C3B44D0D-D7D8-4080-859B-90B391F8D5B1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TerrainFixup", "TerrainFixup\TerrainFixup.csproj", "{C3B44D0D-D7D8-4080-859B-90B391F8D5B1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -61,6 +61,7 @@ Global
 		{D8B26B12-E45C-47EA-88F7-56628EB2CCD1}.Release|Any CPU.ActiveCfg = Release|x64
 		{D8B26B12-E45C-47EA-88F7-56628EB2CCD1}.Release|Any CPU.Build.0 = Release|x64
 		{D8B26B12-E45C-47EA-88F7-56628EB2CCD1}.Release|x64.ActiveCfg = Release|x64
+		{D8B26B12-E45C-47EA-88F7-56628EB2CCD1}.Release|x64.Build.0 = Release|x64
 		{D8B26B12-E45C-47EA-88F7-56628EB2CCD1}.RelWithDebInfo|Any CPU.ActiveCfg = Release|x64
 		{D8B26B12-E45C-47EA-88F7-56628EB2CCD1}.RelWithDebInfo|Any CPU.Build.0 = Release|x64
 		{D8B26B12-E45C-47EA-88F7-56628EB2CCD1}.RelWithDebInfo|x64.ActiveCfg = Release|x64

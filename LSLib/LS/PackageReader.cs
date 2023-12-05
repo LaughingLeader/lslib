@@ -30,13 +30,17 @@ namespace LSLib.LS
         private readonly bool _metadataOnly;
         private Stream[] _streams;
 
-        public PackageReader(string path, bool metadataOnly = false)
+		public PackageReader(bool metadataOnly = false)
+		{
+			this._metadataOnly = metadataOnly;
+		}
+
+		public PackageReader(string path, bool metadataOnly = false) : this(metadataOnly)
         {
             this._path = path;
-            this._metadataOnly = metadataOnly;
         }
 
-        public void Dispose()
+		public void Dispose()
         {
             if (_streams != null)
             {
@@ -50,7 +54,7 @@ namespace LSLib.LS
             }
         }
 
-        private void OpenStreams(FileStream mainStream, int numParts)
+        private void OpenStreams(Stream mainStream, int numParts)
         {
             // Open a stream for each file chunk
             _streams = new Stream[numParts];
@@ -63,7 +67,7 @@ namespace LSLib.LS
             }
         }
 
-        private Package ReadPackageV7(FileStream mainStream, BinaryReader reader)
+        private Package ReadPackageV7(Stream mainStream, BinaryReader reader)
         {
             var package = new Package();
             mainStream.Seek(0, SeekOrigin.Begin);
@@ -89,7 +93,7 @@ namespace LSLib.LS
             return package;
         }
 
-        private Package ReadPackageV10(FileStream mainStream, BinaryReader reader)
+        private Package ReadPackageV10(Stream mainStream, BinaryReader reader)
         {
             var package = new Package();
             mainStream.Seek(4, SeekOrigin.Begin);
@@ -118,7 +122,7 @@ namespace LSLib.LS
             return package;
         }
 
-        private Package ReadPackageV13(FileStream mainStream, BinaryReader reader)
+        private Package ReadPackageV13(Stream mainStream, BinaryReader reader)
         {
             var package = new Package();
             var header = BinUtils.ReadStruct<LSPKHeader13>(reader);
@@ -273,7 +277,7 @@ namespace LSLib.LS
             }
         }
 
-        private Package ReadPackageV15(FileStream mainStream, BinaryReader reader)
+        private Package ReadPackageV15(Stream mainStream, BinaryReader reader)
         {
             var package = new Package();
             var header = BinUtils.ReadStruct<LSPKHeader15>(reader);
@@ -297,7 +301,7 @@ namespace LSLib.LS
             return package;
         }
 
-        private Package ReadPackageV16(FileStream mainStream, BinaryReader reader)
+        private Package ReadPackageV16(Stream mainStream, BinaryReader reader)
         {
             var package = new Package();
             var header = BinUtils.ReadStruct<LSPKHeader16>(reader);
@@ -321,7 +325,7 @@ namespace LSLib.LS
             return package;
         }
 
-        private Package ReadPackageV18(FileStream mainStream, BinaryReader reader)
+        private Package ReadPackageV18(Stream mainStream, BinaryReader reader)
         {
             var package = new Package();
             var header = BinUtils.ReadStruct<LSPKHeader16>(reader);
@@ -347,8 +351,12 @@ namespace LSLib.LS
 
         public Package Read()
         {
-            var mainStream = File.Open(_path, FileMode.Open, FileAccess.Read, FileShare.Read);
+			var mainStream = File.Open(_path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            return Read(mainStream);
+		}
 
+        public Package Read(Stream mainStream)
+        {
             using (var reader = new BinaryReader(mainStream, new UTF8Encoding(), true))
             {
                 // Check for v13 package headers
