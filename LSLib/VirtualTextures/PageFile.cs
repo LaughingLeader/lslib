@@ -10,8 +10,6 @@ namespace LSLib.VirtualTextures
 {
     public class PageFile : IDisposable
     {
-        private const UInt32 PageSize = 0x100000;
-
         private VirtualTileSet TileSet;
         private FileStream Stream;
         private BinaryReader Reader;
@@ -26,7 +24,7 @@ namespace LSLib.VirtualTextures
 
             Header = BinUtils.ReadStruct<GTPHeader>(Reader);
 
-            var numPages = Stream.Length / PageSize;
+            var numPages = Stream.Length / tileset.Header.PageSize;
             ChunkOffsets = new List<UInt32[]>();
 
             for (var page = 0; page < numPages; page++)
@@ -36,7 +34,7 @@ namespace LSLib.VirtualTextures
                 BinUtils.ReadStructs<UInt32>(Reader, offsets);
                 ChunkOffsets.Add(offsets);
 
-                Stream.Position = (page + 1) * PageSize;
+                Stream.Position = (page + 1) * tileset.Header.PageSize;
             }
         }
 
@@ -49,18 +47,19 @@ namespace LSLib.VirtualTextures
         private byte[] DoUnpackTileBC(GTPChunkHeader header, int outputSize)
         {
             var parameterBlock = (GTSBCParameterBlock)TileSet.ParameterBlocks[header.ParameterBlockID];
-            if (parameterBlock.CompressionName1 != "lz77" || parameterBlock.CompressionName2 != "fastlz0.1.0")
+            if (parameterBlock.CompressionName1 == "lz77" && parameterBlock.CompressionName2 == "fastlz0.1.0")
+            {
+                var buf = Reader.ReadBytes((int)header.Size);
+                return Native.FastLZCompressor.Decompress(buf, outputSize);
+            }
+            else if (parameterBlock.CompressionName1 == "raw")
+            {
+                return Reader.ReadBytes((int)header.Size);
+            }
+            else
             {
                 throw new InvalidDataException($"Unsupported BC compression format: '{parameterBlock.CompressionName1}', '{parameterBlock.CompressionName2}'");
             }
-
-            var buf = Reader.ReadBytes((int)header.Size);
-            byte[] outb = new byte[outputSize];
-            var decd = FastLZ.fastlz1_decompress(buf, buf.Length, outb);
-
-            byte[] outb2 = new byte[decd];
-            Array.Copy(outb, outb2, decd);
-            return outb2;
         }
 
         private byte[] DoUnpackTileUniform(GTPChunkHeader header)
@@ -74,7 +73,7 @@ namespace LSLib.VirtualTextures
 
         public byte[] UnpackTile(int pageIndex, int chunkIndex, int outputSize)
         {
-            Stream.Position = ChunkOffsets[pageIndex][chunkIndex] + (pageIndex * PageSize);
+            Stream.Position = ChunkOffsets[pageIndex][chunkIndex] + (pageIndex * TileSet.Header.PageSize);
             var chunkHeader = BinUtils.ReadStruct<GTPChunkHeader>(Reader);
             switch (chunkHeader.Codec)
             {
@@ -86,7 +85,8 @@ namespace LSLib.VirtualTextures
 
         public BC5Image UnpackTileBC5(int pageIndex, int chunkIndex)
         {
-            var compressedSize = TileSet.Header.TileWidth * TileSet.Header.TileHeight * 2;
+            var compressedSize = 16 * ((TileSet.Header.TileWidth + 3) / 4) * ((TileSet.Header.TileHeight + 3) / 4)
+                + 16 * ((TileSet.Header.TileWidth/2 + 3) / 4) * ((TileSet.Header.TileHeight/2 + 3) / 4);
             var chunk = UnpackTile(pageIndex, chunkIndex, compressedSize);
             return new BC5Image(chunk, TileSet.Header.TileWidth, TileSet.Header.TileHeight);
         }

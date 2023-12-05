@@ -7,6 +7,10 @@ namespace LSLib.VirtualTextures
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct DDSHeader
     {
+        public static UInt32 DDSMagic = 0x20534444;
+        public static UInt32 HeaderSize = 0x7c;
+        public static UInt32 FourCC_DXT5 = 0x35545844;
+
         public UInt32 dwMagic;
         public UInt32 dwSize;
         public UInt32 dwFlags;
@@ -32,6 +36,25 @@ namespace LSLib.VirtualTextures
         public UInt32 dwCaps3;
         public UInt32 dwCaps4;
         public UInt32 dwReserved2;
+
+        public string FourCCName
+        {
+            get
+            {
+                return Char.ToString((char)(dwFourCC & 0xff))
+                    + Char.ToString((char)((dwFourCC >> 8) & 0xff))
+                    + Char.ToString((char)((dwFourCC >> 16) & 0xff))
+                    + Char.ToString((char)((dwFourCC >> 24) & 0xff));
+            }
+
+            set
+            {
+                dwFourCC = (uint)value[0]
+                    | ((uint)value[1] << 8)
+                    | ((uint)value[2] << 16)
+                    | ((uint)value[3] << 24);
+            }
+        }
     };
 
     public enum GTSDataType : UInt32
@@ -96,7 +119,7 @@ namespace LSLib.VirtualTextures
         public Int32 TileHeight;
         public Int32 TileBorder;
 
-        public UInt32 I2;
+        public UInt32 I2; // Some tile count?
         public UInt32 NumFlatTileInfos;
         public UInt64 FlatTileInfoOffset;
         public UInt32 I6;
@@ -113,7 +136,7 @@ namespace LSLib.VirtualTextures
         public UInt32 R;
         public UInt32 S;
 
-        public UInt32 T; // 0x10000
+        public UInt32 PageSize;
         public UInt32 NumPageFiles;
         public UInt64 PageFileMetadataOffset;
 
@@ -140,9 +163,9 @@ namespace LSLib.VirtualTextures
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct GTSTileSetLevel
     {
-        public UInt32 Width;
-        public UInt32 Height;
-        public UInt64 FlatTileIndicesOffset;
+        public UInt32 Width; // Width in tiles
+        public UInt32 Height; // Height in tiles
+        public UInt64 FlatTileIndicesOffset; // Flat tiles offset in file
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -211,21 +234,21 @@ namespace LSLib.VirtualTextures
     public struct GTSPageFileInfo
     {
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 512)]
-        public byte[] NameBuf;
+        public byte[] FileNameBuf;
 
         public UInt32 NumPages;
         public Guid Checksum;
         public UInt32 F; // 2
 
-        public string Name
+        public string FileName
         {
             get
             {
                 int nameLen;
-                for (nameLen = 0; nameLen < NameBuf.Length && NameBuf[nameLen] != 0; nameLen += 2)
+                for (nameLen = 0; nameLen < FileNameBuf.Length && FileNameBuf[nameLen] != 0; nameLen += 2)
                 {
                 }
-                return Encoding.Unicode.GetString(NameBuf, 0, nameLen);
+                return Encoding.Unicode.GetString(FileNameBuf, 0, nameLen);
             }
         }
     }
@@ -235,7 +258,8 @@ namespace LSLib.VirtualTextures
     {
         public UInt32 FourCC;
         public Byte Format;
-        public Byte Subformat;
+        public Byte ExtendedLength;
+        public UInt16 Length;
 
         public string FourCCName
         {
@@ -317,11 +341,11 @@ namespace LSLib.VirtualTextures
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct GTSFlatTileInfo
     {
-        public UInt16 PageFileIndex;
-        public UInt16 PageIndex;
-        public UInt16 ChunkIndex;
-        public UInt16 D; // 1?
-        public UInt32 PackedTileIndex;
+        public UInt16 PageFileIndex; // Index of file in PageFileInfos
+        public UInt16 PageIndex; // Index of 1MB page
+        public UInt16 ChunkIndex; // Index of entry within page
+        public UInt16 D; // Always 1?
+        public UInt32 PackedTileIndex; // Index of tile in PackedTileIDs
     }
 
 
