@@ -94,17 +94,6 @@ namespace LSLib.LS
 			}
 		}
 
-		private ModInfo GetMod(string modName)
-		{
-			if (!Resources.Mods.TryGetValue(modName, out ModInfo mod))
-			{
-				mod = new ModInfo(modName);
-				Resources.Mods[modName] = mod;
-			}
-
-			return mod;
-		}
-
 		private bool TryGetMod(Regex pattern, AbstractFileInfo file, string packagePath, out ModInfo mod, out Match match)
 		{
 			mod = null;
@@ -116,6 +105,17 @@ namespace LSLib.LS
 				return true;
 			}
 			return false;
+		}
+
+		private ModInfo GetMod(string modName)
+		{
+			if (!Resources.Mods.TryGetValue(modName, out ModInfo mod))
+			{
+				mod = new ModInfo(modName);
+				Resources.Mods[modName] = mod;
+			}
+
+			return mod;
 		}
 
 		private void AddStatToMod(string modName, string path, AbstractFileInfo file)
