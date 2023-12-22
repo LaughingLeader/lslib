@@ -79,7 +79,6 @@
     <Compile Include="LS\Stats\Parser\StatLua.yy.cs" />
     <Compile Include="LS\Stats\Parser\StatLuaParser.cs" />
     <Compile Include="VirtualTextures\BC5Image.cs" />
-    <Compile Include="VirtualTextures\Compression.cs" />
     <Compile Include="VirtualTextures\PageFile.cs" />
     <Compile Include="VirtualTextures\VirtualTexture.cs" />
     <Compile Include="VirtualTextures\VirtualTextureFormats.cs" />
