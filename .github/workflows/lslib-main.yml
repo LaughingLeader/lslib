@@ -1,0 +1,113 @@
+name: LSLib CI
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
+    paths:
+      - 'LSLib/**'
+      - 'LSLibNative/**'
+      - 'OpenTK/**'
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'LSLib/**'
+      - 'LSLibNative/**'
+      - 'OpenTK/**'
+
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup MSVC
+      uses: microsoft/setup-msbuild@v1.1
+      with:
+        vs-version: latest
+
+    - name: Restore dependencies
+      id: cache
+      uses: actions/cache@v3
+      with:
+        path: |
+          external/gplex
+          external/gppg
+          external/protoc
+        key: dependencies-${{ runner.os }}-${{ hashFiles('external/**') }}
+
+    - name: Download and Extract dependencies
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: pwsh
+      run: |
+        Invoke-WebRequest -Uri https://s3.eu-central-1.amazonaws.com/nb-stor/dos/ExportTool/gplex-distro-${{ vars.GPLEX_VERSION }}.zip  -OutFile gplex.zip
+        7z x gplex.zip -oexternal/
+        Rename-Item -Path external/gplex-distro-${{ vars.GPLEX_VERSION }} -NewName gplex
+
+        Invoke-WebRequest -Uri https://s3.eu-central-1.amazonaws.com/nb-stor/dos/ExportTool/gppg-distro-${{ vars.GPPG_VERSION }}.zip -OutFile gppg.zip
+        7z x gppg.zip -oexternal/
+        Rename-Item -Path external/gppg-distro-${{ vars.GPPG_VERSION }} -NewName gppg
+
+        Invoke-WebRequest -Uri ${{ vars.PROTOC_URL }} -OutFile protoc.zip
+        7z x protoc.zip -oexternal/protoc
+
+    - name: Restore NuGet packages
+      run: |
+        nuget restore LSTools.sln
+
+    - name: Build debug
+      run: |
+        msbuild LSTools.sln /t:LSLib /p:Configuration=Debug
+
+    - name: Build release
+      run: |
+        msbuild LSTools.sln /t:LSLib /p:Configuration=Release
+
+    - name: Uploading debug
+      uses: actions/upload-artifact@v4
+      with:
+        name: lslib-debug
+        path: ./LSLib/bin/Debug
+
+    - name: Uploading release
+      uses: actions/upload-artifact@v4
+      with:
+        name: lslib-release
+        path: ./LSLib/bin/Release
+
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ ! startsWith(github.ref, 'refs/tags/') }}
+    steps:
+      - uses: actions/download-artifact@v4
+        id: download
+
+      - name: Prepare debug
+        uses: thedoctor0/zip-release@0.7.5
+        with:
+          directory: ${{steps.download.outputs.download-path}}/lslib-debug/ 
+          type: 'zip'
+          filename: 'lslib-debug'
+          exclusions: '*.xml'
+
+      - name: Prepare release
+        uses: thedoctor0/zip-release@0.7.5
+        with:
+          directory: ${{steps.download.outputs.download-path}}/lslib-release/ 
+          type: 'zip'
+          filename: 'lslib-release'
+          exclusions: '*.xml *.pdb'
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ${{steps.download.outputs.download-path}}/lslib-debug/lslib-debug.zip
+            ${{steps.download.outputs.download-path}}/lslib-release/lslib-release.zip
