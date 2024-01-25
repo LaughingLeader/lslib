@@ -32,7 +32,7 @@ namespace LSLib.LS
         public LSFVersion Version = LSFVersion.MaxWriteVersion;
         public bool EncodeSiblingData = false;
         public CompressionMethod Compression = CompressionMethod.LZ4;
-        public CompressionLevel CompressionLevel = CompressionLevel.DefaultCompression;
+        public LSCompressionLevel CompressionLevel = LSCompressionLevel.Default;
 
         public LSFWriter(Stream stream)
         {

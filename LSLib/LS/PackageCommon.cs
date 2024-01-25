@@ -186,7 +186,7 @@ namespace LSLib.LS
             FileInfo = fileInfo;
             PackageStream.Seek((long)fileInfo.OffsetInFile, SeekOrigin.Begin);
             
-            if ((CompressionMethod)(FileInfo.Flags & 0x0F) != CompressionMethod.None)
+            if (FileInfo.Flags.Method() != CompressionMethod.None)
             {
                 throw new ArgumentException("We only support uncompressed files!");
             }
@@ -232,7 +232,7 @@ namespace LSLib.LS
     {
         public UInt32 ArchivePart;
         public UInt32 Crc;
-        public UInt32 Flags;
+        public CompressionFlags Flags;
         public UInt64 OffsetInFile;
         public Stream PackageStream;
         public UInt64 SizeOnDisk;
@@ -247,9 +247,9 @@ namespace LSLib.LS
             ReleaseStream();
         }
 
-        public override UInt64 Size() => (Flags & 0x0F) == 0 ? SizeOnDisk : UncompressedSize;
+        public override UInt64 Size() => Flags.Method() == CompressionMethod.None ? SizeOnDisk : UncompressedSize;
 
-        public override UInt32 CRC() => Crc;
+		public override UInt32 CRC() => Crc;
 
         public override Stream MakeStream()
         {
@@ -263,7 +263,7 @@ namespace LSLib.LS
                 return _uncompressedStream;
             }
 
-            if ((CompressionMethod)(Flags & 0x0F) == CompressionMethod.None && !Solid)
+            if (Flags.Method() == CompressionMethod.None && !Solid)
             {
                 // Use direct stream read for non-compressed files
                 _uncompressedStream = new UncompressedPackagedFileStream(PackageStream, this);
@@ -304,7 +304,7 @@ namespace LSLib.LS
             }
             else
             {
-                byte[] uncompressed = BinUtils.Decompress(compressed, (int)Size(), (byte)Flags);
+                byte[] uncompressed = BinUtils.Decompress(compressed, (int)Size(), Flags);
                 _uncompressedStream = new MemoryStream(uncompressed);
             }
 
@@ -331,7 +331,7 @@ namespace LSLib.LS
                 SizeOnDisk = entry.SizeOnDisk,
                 UncompressedSize = entry.UncompressedSize,
                 ArchivePart = entry.ArchivePart,
-                Flags = entry.Flags,
+                Flags = (CompressionFlags)entry.Flags,
                 Crc = entry.Crc,
                 Solid = false
             };
@@ -361,7 +361,7 @@ namespace LSLib.LS
                 SizeOnDisk = entry.SizeOnDisk,
                 UncompressedSize = entry.UncompressedSize,
                 ArchivePart = entry.ArchivePart,
-                Flags = entry.Flags,
+                Flags = (CompressionFlags)entry.Flags,
                 Crc = entry.Crc,
                 Solid = false
             };
@@ -391,8 +391,8 @@ namespace LSLib.LS
                 SizeOnDisk = entry.SizeOnDisk,
                 UncompressedSize = entry.UncompressedSize,
                 ArchivePart = entry.ArchivePart,
-                Flags = entry.Flags,
-                Crc = 0,
+                Flags = entry.UncompressedSize > 0 ? BinUtils.MakeCompressionFlags(CompressionMethod.Zlib, LSCompressionLevel.Default) : 0,
+				Crc = 0,
                 Solid = false
             };
 
@@ -440,7 +440,7 @@ namespace LSLib.LS
             info.ArchivePart = entry.ArchivePart;
             info.Crc = 0;
 
-            info.Flags = entry.UncompressedSize > 0 ? BinUtils.MakeCompressionFlags(CompressionMethod.Zlib, CompressionLevel.DefaultCompression) : (uint) 0;
+            info.Flags = entry.UncompressedSize > 0 ? BinUtils.MakeCompressionFlags(CompressionMethod.Zlib, LSCompressionLevel.Default) : (uint) 0;
 
             return info;
         }
@@ -456,7 +456,7 @@ namespace LSLib.LS
 
             entry.OffsetInFile = (uint)OffsetInFile;
             entry.SizeOnDisk = (uint)SizeOnDisk;
-            entry.UncompressedSize = (Flags & 0x0F) == 0 ? 0 : (uint)UncompressedSize;
+            entry.UncompressedSize = Flags.Method() == 0 ? 0 : (uint)UncompressedSize;
             entry.ArchivePart = ArchivePart;
             return entry;
         }
@@ -472,9 +472,9 @@ namespace LSLib.LS
 
             entry.OffsetInFile = (uint)OffsetInFile;
             entry.SizeOnDisk = (uint)SizeOnDisk;
-            entry.UncompressedSize = (Flags & 0x0F) == 0 ? 0 : (uint)UncompressedSize;
+            entry.UncompressedSize = Flags.Method() == 0 ? 0 : (uint)UncompressedSize;
             entry.ArchivePart = ArchivePart;
-            entry.Flags = Flags;
+            entry.Flags = (uint)Flags;
             entry.Crc = Crc;
             return entry;
         }
@@ -486,8 +486,8 @@ namespace LSLib.LS
                 Name = new byte[256],
                 OffsetInFile = OffsetInFile,
                 SizeOnDisk = SizeOnDisk,
-                UncompressedSize = (Flags & 0x0F) == 0 ? 0 : UncompressedSize,
-                Flags = Flags,
+                UncompressedSize = Flags.Method() == 0 ? 0 : UncompressedSize,
+                Flags = (uint)Flags,
                 Crc = Crc,
                 ArchivePart = ArchivePart,
                 Unknown2 = 0
@@ -506,7 +506,7 @@ namespace LSLib.LS
                 OffsetInFile1 = (uint)(OffsetInFile & 0xffffffff),
                 OffsetInFile2 = (ushort)((OffsetInFile >> 32) & 0xffff),
                 SizeOnDisk = (uint)SizeOnDisk,
-                UncompressedSize = (Flags & 0x0F) == 0 ? 0 : (uint)UncompressedSize,
+                UncompressedSize = Flags.Method() == 0 ? 0 : (uint)UncompressedSize,
                 Flags = (byte)Flags,
                 ArchivePart = (byte)ArchivePart
             };
@@ -742,7 +742,7 @@ namespace LSLib.LS
                 writer.WriteProgress += WriteProgressUpdate;
                 writer.Version = options.Version;
                 writer.Compression = options.Compression;
-                writer.CompressionLevel = options.FastCompression ? CompressionLevel.FastCompression : CompressionLevel.DefaultCompression;
+                writer.CompressionLevel = options.FastCompression ? LSCompressionLevel.Fast : LSCompressionLevel.Default;
                 writer.Write();
             }
         }

@@ -20,7 +20,7 @@ namespace LSLib.LS
         private const long MaxPackageSizeDOS = 0x40000000;
         private const long MaxPackageSizeBG3 = 0x100000000;
         public CompressionMethod Compression = CompressionMethod.None;
-        public CompressionLevel CompressionLevel = CompressionLevel.DefaultCompression;
+        public LSCompressionLevel CompressionLevel = LSCompressionLevel.Default;
 
         private readonly Package _package;
         private readonly String _path;
