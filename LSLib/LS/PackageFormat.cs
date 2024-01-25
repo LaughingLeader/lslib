@@ -31,7 +31,7 @@ namespace LSLib.LS
 		//abstract public static ILSPKHeader FromCommonHeader(PackageHeaderCommon h);
 	}
 
-	internal static class ILSPKHeaderExtensions
+	internal static class ILSPKHelpers
 	{
 		internal static ILSPKHeader FromCommonHeader<T>(PackageHeaderCommon h) where T : ILSPKHeader
 		{
@@ -50,7 +50,24 @@ namespace LSLib.LS
 			}
 			return null;
 		}
+
+		internal static ILSPKFile FromCommon<T>(PackagedFileInfoCommon info) where T : ILSPKFile
+		{
+			switch (typeof(T))
+			{
+				case Type type when type == typeof(FileEntry7):
+					return FileEntry7.FromCommon(info);
+				case Type type when type == typeof(FileEntry10):
+					return FileEntry10.FromCommon(info);
+				case Type type when type == typeof(FileEntry15):
+					return FileEntry15.FromCommon(info);
+				case Type type when type == typeof(FileEntry18):
+					return FileEntry18.FromCommon(info);
+			}
+			return null;
+		}
 	}
+
 
 	[StructLayout(LayoutKind.Sequential, Pack = 1)]
 	internal struct LSPKHeader7 : ILSPKHeader
@@ -317,25 +334,6 @@ namespace LSLib.LS
 		public void ToCommon(PackagedFileInfoCommon info);
 		//abstract public static ILSPKFile FromCommon(PackagedFileInfoCommon info);
 		public UInt16 ArchivePartNumber();
-	}
-
-	internal static class ILSPKFileExtensions
-	{
-		internal static ILSPKFile FromCommon<T>(PackagedFileInfoCommon info) where T : ILSPKFile
-		{
-			switch (typeof(T))
-			{
-				case Type type when type == typeof(FileEntry7):
-					return FileEntry7.FromCommon(info);
-				case Type type when type == typeof(FileEntry10):
-					return FileEntry10.FromCommon(info);
-				case Type type when type == typeof(FileEntry15):
-					return FileEntry15.FromCommon(info);
-				case Type type when type == typeof(FileEntry18):
-					return FileEntry18.FromCommon(info);
-			}
-			return null;
-		}
 	}
 
 

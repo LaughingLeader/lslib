@@ -160,7 +160,7 @@ namespace LSLib.LS
 			Metadata.NumParts = (UInt16)Streams.Count;
 			Metadata.Md5 = ComputeArchiveHash();
 
-			var header = ILSPKHeaderExtensions.FromCommonHeader<THeader>(Metadata);
+			var header = ILSPKHelpers.FromCommonHeader<THeader>(Metadata);
 			BinUtils.WriteStruct(writer, ref header);
 
 			WriteFileList<TFile>(writer, writtenFiles);
@@ -181,7 +181,7 @@ namespace LSLib.LS
 			Metadata.Md5 = ComputeArchiveHash();
 			Metadata.NumParts = (UInt16)Streams.Count;
 
-			var header = ILSPKHeaderExtensions.FromCommonHeader<THeader>(Metadata);
+			var header = ILSPKHelpers.FromCommonHeader<THeader>(Metadata);
 			BinUtils.WriteStruct(writer, ref header);
 
 			writer.Write((UInt32)(8 + Marshal.SizeOf(typeof(THeader))));
@@ -217,7 +217,7 @@ namespace LSLib.LS
 				// <= v10 packages don't support compression level in the flags field
 				file.Flags = (CompressionFlags)((byte)file.Flags & 0x0f);
 
-				var entry = ILSPKFileExtensions.FromCommon<TFile>(file);
+				var entry = ILSPKHelpers.FromCommon<TFile>(file);
 				BinUtils.WriteStruct(metadataWriter, ref entry);
 			}
 		}
@@ -231,7 +231,7 @@ namespace LSLib.LS
 			{
 				foreach (var file in files)
 				{
-					var entry = ILSPKFileExtensions.FromCommon<TFile>(file);
+					var entry = ILSPKHelpers.FromCommon<TFile>(file);
 					BinUtils.WriteStruct(fileListWriter, ref entry);
 				}
 
@@ -261,7 +261,7 @@ namespace LSLib.LS
 			using (var writer = new BinaryWriter(mainStream, new UTF8Encoding(), true))
 			{
 				writer.Write(PackageHeaderCommon.Signature);
-				var header = ILSPKHeaderExtensions.FromCommonHeader<THeader>(Metadata);
+				var header = ILSPKHelpers.FromCommonHeader<THeader>(Metadata);
 				BinUtils.WriteStruct(writer, ref header);
 			}
 
@@ -285,7 +285,7 @@ namespace LSLib.LS
 				Metadata.NumParts = (UInt16)Streams.Count;
 
 				mainStream.Seek(4, SeekOrigin.Begin);
-				var header = ILSPKHeaderExtensions.FromCommonHeader<THeader>(Metadata);
+				var header = ILSPKHelpers.FromCommonHeader<THeader>(Metadata);
 				BinUtils.WriteStruct(writer, ref header);
 			}
 		}
