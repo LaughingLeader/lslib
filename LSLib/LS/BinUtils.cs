@@ -1,13 +1,13 @@
 ﻿using LZ4;
+
 using System;
 using System.IO;
-using System.Runtime.InteropServices;
-using LSLib.LS.Enums;
-using System.IO.Compression;
-using System.Text;
-using System.Threading.Tasks;
-using System.Threading;
 using System.IO.MemoryMappedFiles;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+
 using zlib;
 
 namespace LSLib.LS

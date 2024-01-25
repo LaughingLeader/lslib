@@ -1,416 +1,333 @@
-﻿using System;
+﻿using LSLib.LS.Enums;
+
+using System;
+using System.Collections.Generic;
 using System.IO;
-using System.Linq;
+using System.IO.MemoryMappedFiles;
 using System.Runtime.InteropServices;
-using System.Text;
-using LZ4;
-using File = Alphaleonis.Win32.Filesystem.File;
-using LSLib.LS.Enums;
 
 namespace LSLib.LS
 {
-    public class NotAPackageException : Exception
-    {
-        public NotAPackageException()
-        {
-        }
 
-        public NotAPackageException(string message) : base(message)
-        {
-        }
-
-        public NotAPackageException(string message, Exception innerException) : base(message, innerException)
-        {
-        }
-    }
-
-    public class PackageReader : IDisposable
-    {
-        private readonly String _path;
-        private readonly bool _metadataOnly;
-        private Stream[] _streams;
-
-		public PackageReader(bool metadataOnly = false)
+	public class NotAPackageException : Exception
+	{
+		public NotAPackageException()
 		{
-			this._metadataOnly = metadataOnly;
 		}
 
-		public PackageReader(string path, bool metadataOnly = false) : this(metadataOnly)
-        {
-            this._path = path;
-        }
+		public NotAPackageException(string message) : base(message)
+		{
+		}
+
+		public NotAPackageException(string message, Exception innerException) : base(message, innerException)
+		{
+		}
+	}
+
+	public class Package : IDisposable
+	{
+		public readonly string PackagePath;
+		internal readonly MemoryMappedFile MetadataFile;
+		internal readonly MemoryMappedViewAccessor MetadataView;
+
+		internal MemoryMappedFile[] Parts;
+		internal MemoryMappedViewAccessor[] Views;
+
+		public PackageHeaderCommon Metadata;
+		public List<PackagedFileInfo> Files = new();
+
+		public PackageVersion Version
+		{
+			get { return (PackageVersion)Metadata.Version; }
+		}
+
+		public void OpenPart(int index, string path)
+		{
+			var file = File.OpenRead(path);
+			Parts[index] = MemoryMappedFile.CreateFromFile(file, null, file.Length, MemoryMappedFileAccess.Read, HandleInheritability.None, false);
+			Views[index] = MetadataFile.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
+		}
+
+		public void OpenStreams(int numParts)
+		{
+			// Open a stream for each file chunk
+			Parts = new MemoryMappedFile[numParts];
+			Views = new MemoryMappedViewAccessor[numParts];
+
+			Parts[0] = MetadataFile;
+			Views[0] = MetadataView;
+
+			for (var part = 1; part < numParts; part++)
+			{
+				string partPath = Package.MakePartFilename(PackagePath, part);
+				OpenPart(part, partPath);
+			}
+		}
+
+		internal Package(string path)
+		{
+			PackagePath = path;
+			var file = File.OpenRead(PackagePath);
+			MetadataFile = MemoryMappedFile.CreateFromFile(file, null, file.Length, MemoryMappedFileAccess.Read, HandleInheritability.None, false);
+			MetadataView = MetadataFile.CreateViewAccessor(0, file.Length, MemoryMappedFileAccess.Read);
+		}
+
+		internal Package(FileStream file)
+		{
+			MetadataFile = MemoryMappedFile.CreateFromFile(file, null, file.Length, MemoryMappedFileAccess.Read, HandleInheritability.None, false);
+			MetadataView = MetadataFile.CreateViewAccessor(0, file.Length, MemoryMappedFileAccess.Read);
+		}
 
 		public void Dispose()
-        {
-            if (_streams != null)
-            {
-                foreach (Stream stream in _streams)
-                {
-                    if (stream != null)
-                    {
-                        stream.Dispose();
-                    }
-                }
-            }
-        }
+		{
+			MetadataView?.Dispose();
+			MetadataFile?.Dispose();
 
-        private void OpenStreams(Stream mainStream, int numParts)
-        {
-            // Open a stream for each file chunk
-            _streams = new Stream[numParts];
-            _streams[0] = mainStream;
+			if (Views != null)
+			{
+				foreach (var view in Views)
+				{
+					view?.Dispose();
+				}
+			}
 
-            for (var part = 1; part < numParts; part++)
-            {
-                string partPath = Package.MakePartFilename(_path, part);
-                _streams[part] = File.Open(partPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            }
-        }
-
-        private Package ReadPackageV7(Stream mainStream, BinaryReader reader)
-        {
-            var package = new Package();
-            mainStream.Seek(0, SeekOrigin.Begin);
-            var header = BinUtils.ReadStruct<LSPKHeader7>(reader);
-
-            package.Metadata.Flags = 0;
-            package.Metadata.Priority = 0;
-            package.Version = PackageVersion.V7;
-
-            if (_metadataOnly) return package;
-
-            OpenStreams(mainStream, (int) header.NumParts);
-            for (uint i = 0; i < header.NumFiles; i++)
-            {
-                var entry = BinUtils.ReadStruct<FileEntry7>(reader);
-                if (entry.ArchivePart == 0)
-                {
-                    entry.OffsetInFile += header.DataOffset;
-                }
-                package.Files.Add(PackagedFileInfo.CreateFromEntry(entry, _streams[entry.ArchivePart]));
-            }
-
-            return package;
-        }
-
-        private Package ReadPackageV10(Stream mainStream, BinaryReader reader)
-        {
-            var package = new Package();
-            mainStream.Seek(4, SeekOrigin.Begin);
-            var header = BinUtils.ReadStruct<LSPKHeader10>(reader);
-
-            package.Metadata.Flags = (PackageFlags)header.Flags;
-            package.Metadata.Priority = header.Priority;
-            package.Version = PackageVersion.V10;
-
-            if (_metadataOnly) return package;
-
-            OpenStreams(mainStream, header.NumParts);
-            for (uint i = 0; i < header.NumFiles; i++)
-            {
-                var entry = BinUtils.ReadStruct<FileEntry13>(reader);
-                if (entry.ArchivePart == 0)
-                {
-                    entry.OffsetInFile += header.DataOffset;
-                }
-
-                // Add missing compression level flags
-                entry.Flags = (entry.Flags & 0x0f) | 0x20;
-                package.Files.Add(PackagedFileInfo.CreateFromEntry(entry, _streams[entry.ArchivePart]));
-            }
-
-            return package;
-        }
-
-        private Package ReadPackageV13(Stream mainStream, BinaryReader reader)
-        {
-            var package = new Package();
-            var header = BinUtils.ReadStruct<LSPKHeader13>(reader);
-
-            if (header.Version != (ulong) PackageVersion.V13)
-            {
-                string msg = $"Unsupported package version {header.Version}; this package layout is only supported for {PackageVersion.V13}";
-                throw new InvalidDataException(msg);
-            }
-
-            package.Metadata.Flags = (PackageFlags)header.Flags;
-            package.Metadata.Priority = header.Priority;
-            package.Version = PackageVersion.V13;
-
-            if (_metadataOnly) return package;
-
-            OpenStreams(mainStream, header.NumParts);
-            mainStream.Seek(header.FileListOffset, SeekOrigin.Begin);
-            int numFiles = reader.ReadInt32();
-            int fileBufferSize = Marshal.SizeOf(typeof(FileEntry13)) * numFiles;
-            byte[] compressedFileList = reader.ReadBytes((int) header.FileListSize - 4);
-
-            var uncompressedList = new byte[fileBufferSize];
-            int uncompressedSize = LZ4Codec.Decode(compressedFileList, 0, compressedFileList.Length, uncompressedList, 0, fileBufferSize, true);
-            if (uncompressedSize != fileBufferSize)
-            {
-                string msg = $"LZ4 compressor disagrees about the size of file headers; expected {fileBufferSize}, got {uncompressedSize}";
-                throw new InvalidDataException(msg);
-            }
-
-            var ms = new MemoryStream(uncompressedList);
-            var msr = new BinaryReader(ms);
-
-            var entries = new FileEntry13[numFiles];
-            BinUtils.ReadStructs(msr, entries);
-
-            if ((package.Metadata.Flags & PackageFlags.Solid) == PackageFlags.Solid && numFiles > 0)
-            {
-                // Calculate compressed frame offset and bounds
-                uint totalUncompressedSize = 0;
-                uint totalSizeOnDisk = 0;
-                uint firstOffset = 0xffffffff;
-                uint lastOffset = 0;
-
-                foreach (var entry in entries)
-                {
-                    totalUncompressedSize += entry.UncompressedSize;
-                    totalSizeOnDisk += entry.SizeOnDisk;
-                    if (entry.OffsetInFile < firstOffset)
-                    {
-                        firstOffset = entry.OffsetInFile;
-                    }
-                    if (entry.OffsetInFile + entry.SizeOnDisk > lastOffset)
-                    {
-                        lastOffset = entry.OffsetInFile + entry.SizeOnDisk;
-                    }
-                }
-
-                if (firstOffset != 7 || lastOffset - firstOffset != totalSizeOnDisk)
-                {
-                    string msg = $"Incorrectly compressed solid archive; offsets {firstOffset}/{lastOffset}, bytes {totalSizeOnDisk}";
-                    throw new InvalidDataException(msg);
-                }
-
-                // Decompress all files as a single frame (solid)
-                byte[] frame = new byte[lastOffset];
-                mainStream.Seek(0, SeekOrigin.Begin);
-                mainStream.Read(frame, 0, (int)lastOffset);
-
-                byte[] decompressed = Native.LZ4FrameCompressor.Decompress(frame);
-                var decompressedStream = new MemoryStream(decompressed);
-
-                // Update offsets to point to the decompressed chunk
-                uint offset = 7;
-                uint compressedOffset = 0;
-                foreach (var entry in entries)
-                {
-                    if (entry.OffsetInFile != offset)
-                    {
-                        throw new InvalidDataException("File list in solid archive not contiguous");
-                    }
-
-                    var file = PackagedFileInfo.CreateSolidFromEntry(entry, _streams[entry.ArchivePart], compressedOffset, decompressedStream);
-                    package.Files.Add(file);
-
-                    offset += entry.SizeOnDisk;
-                    compressedOffset += entry.UncompressedSize;
-                }
-            }
-            else
-            {
-                foreach (var entry in entries)
-                {
-                    package.Files.Add(PackagedFileInfo.CreateFromEntry(entry, _streams[entry.ArchivePart]));
-                }
-            }
-
-            return package;
-        }
-
-        private void ReadFileListV15(BinaryReader reader, Package package)
-        {
-            int numFiles = reader.ReadInt32();
-            int compressedSize = reader.ReadInt32();
-            byte[] compressedFileList = reader.ReadBytes(compressedSize);
-
-            int fileBufferSize = Marshal.SizeOf(typeof(FileEntry15)) * numFiles;
-            var uncompressedList = new byte[fileBufferSize];
-            int uncompressedSize = LZ4Codec.Decode(compressedFileList, 0, compressedFileList.Length, uncompressedList, 0, fileBufferSize, true);
-            if (uncompressedSize != fileBufferSize)
-            {
-                string msg = $"LZ4 compressor disagrees about the size of file headers; expected {fileBufferSize}, got {uncompressedSize}";
-                throw new InvalidDataException(msg);
-            }
-
-            var ms = new MemoryStream(uncompressedList);
-            var msr = new BinaryReader(ms);
-
-            var entries = new FileEntry15[numFiles];
-            BinUtils.ReadStructs(msr, entries);
-
-            foreach (var entry in entries)
-            {
-                package.Files.Add(PackagedFileInfo.CreateFromEntry(entry, _streams[entry.ArchivePart]));
-            }
-        }
-
-        private void ReadFileListV18(BinaryReader reader, Package package)
-        {
-            int numFiles = reader.ReadInt32();
-            int compressedSize = reader.ReadInt32();
-            byte[] compressedFileList = reader.ReadBytes(compressedSize);
-
-            int fileBufferSize = Marshal.SizeOf(typeof(FileEntry18)) * numFiles;
-            var uncompressedList = new byte[fileBufferSize];
-            int uncompressedSize = LZ4Codec.Decode(compressedFileList, 0, compressedFileList.Length, uncompressedList, 0, fileBufferSize, false);
-            if (uncompressedSize != fileBufferSize)
-            {
-                string msg = $"LZ4 compressor disagrees about the size of file headers; expected {fileBufferSize}, got {uncompressedSize}";
-                throw new InvalidDataException(msg);
-            }
-
-            var ms = new MemoryStream(uncompressedList);
-            var msr = new BinaryReader(ms);
-
-            var entries = new FileEntry18[numFiles];
-            BinUtils.ReadStructs(msr, entries);
-
-            foreach (var entry in entries)
-            {
-                package.Files.Add(PackagedFileInfo.CreateFromEntry(entry, _streams[entry.ArchivePart]));
-            }
-        }
-
-        private Package ReadPackageV15(Stream mainStream, BinaryReader reader)
-        {
-            var package = new Package();
-            var header = BinUtils.ReadStruct<LSPKHeader15>(reader);
-
-            if (header.Version != (ulong)PackageVersion.V15)
-            {
-                string msg = $"Unsupported package version {header.Version}; this layout is only supported for V15";
-                throw new InvalidDataException(msg);
-            }
-
-            package.Metadata.Flags = (PackageFlags)header.Flags;
-            package.Metadata.Priority = header.Priority;
-            package.Version = PackageVersion.V15;
-
-            if (_metadataOnly) return package;
-
-            OpenStreams(mainStream, 1);
-            mainStream.Seek((long)header.FileListOffset, SeekOrigin.Begin);
-            ReadFileListV15(reader, package);
-
-            return package;
-        }
-
-        private Package ReadPackageV16(Stream mainStream, BinaryReader reader)
-        {
-            var package = new Package();
-            var header = BinUtils.ReadStruct<LSPKHeader16>(reader);
-
-            if (header.Version != (ulong)PackageVersion.V16)
-            {
-                string msg = $"Unsupported package version {header.Version}; this layout is only supported for V16";
-                throw new InvalidDataException(msg);
-            }
-
-            package.Metadata.Flags = (PackageFlags)header.Flags;
-            package.Metadata.Priority = header.Priority;
-            package.Version = PackageVersion.V16;
-
-            if (_metadataOnly) return package;
-
-            OpenStreams(mainStream, header.NumParts);
-            mainStream.Seek((long)header.FileListOffset, SeekOrigin.Begin);
-            ReadFileListV15(reader, package);
-
-            return package;
-        }
-
-        private Package ReadPackageV18(Stream mainStream, BinaryReader reader)
-        {
-            var package = new Package();
-            var header = BinUtils.ReadStruct<LSPKHeader16>(reader);
-
-            if (header.Version != (ulong)PackageVersion.V18)
-            {
-                string msg = $"Unsupported package version {header.Version}; this layout is only supported for V18";
-                throw new InvalidDataException(msg);
-            }
-
-            package.Metadata.Flags = (PackageFlags)header.Flags;
-            package.Metadata.Priority = header.Priority;
-            package.Version = PackageVersion.V18;
-
-            if (_metadataOnly) return package;
-
-            OpenStreams(mainStream, header.NumParts);
-            mainStream.Seek((long)header.FileListOffset, SeekOrigin.Begin);
-            ReadFileListV18(reader, package);
-
-            return package;
-        }
-
-        public Package Read()
-        {
-			var mainStream = File.Open(_path, FileMode.Open, FileAccess.Read, FileShare.Read);
-            return Read(mainStream);
+			if (Parts != null)
+			{
+				foreach (var file in Parts)
+				{
+					file?.Dispose();
+				}
+			}
 		}
 
-        public Package Read(Stream mainStream)
-        {
-            using (var reader = new BinaryReader(mainStream, new UTF8Encoding(), true))
-            {
-                // Check for v13 package headers
-                mainStream.Seek(-8, SeekOrigin.End);
-                Int32 headerSize = reader.ReadInt32();
-                byte[] signature = reader.ReadBytes(4);
-                if (Package.Signature.SequenceEqual(signature))
-                {
-                    mainStream.Seek(-headerSize, SeekOrigin.End);
-                    return ReadPackageV13(mainStream, reader);
-                }
+		public static string MakePartFilename(string path, int part)
+		{
+			string dirName = Path.GetDirectoryName(path);
+			string baseName = Path.GetFileNameWithoutExtension(path);
+			string extension = Path.GetExtension(path);
+			return Path.Combine(dirName, $"{baseName}_{part}{extension}");
+		}
+	}
 
-                // Check for v10 package headers
-                mainStream.Seek(0, SeekOrigin.Begin);
-                signature = reader.ReadBytes(4);
-                Int32 version;
-                if (Package.Signature.SequenceEqual(signature))
-                {
-                    version = reader.ReadInt32();
-                    if (version == 10)
-                    {
-                        return ReadPackageV10(mainStream, reader);
-                    }
-                    else if (version == 15)
-                    {
-                        mainStream.Seek(4, SeekOrigin.Begin);
-                        return ReadPackageV15(mainStream, reader);
-                    }
-                    else if (version == 16)
-                    {
-                        mainStream.Seek(4, SeekOrigin.Begin);
-                        return ReadPackageV16(mainStream, reader);
-                    }
-                    else if (version == 18)
-                    {
-                        mainStream.Seek(4, SeekOrigin.Begin);
-                        return ReadPackageV18(mainStream, reader);
-                    }
-                    else
-                    {
-                        throw new InvalidDataException($"Package version v{version} not supported");
-                    }
-                }
+	public class PackageReader
+	{
+		private bool MetadataOnly;
+		private Package Pak;
 
-                // Check for v9 and v7 package headers
-                mainStream.Seek(0, SeekOrigin.Begin);
-                version = reader.ReadInt32();
-                if (version == 7 || version == 9)
-                {
-                    return ReadPackageV7(mainStream, reader);
-                }
+		private void ReadCompressedFileList<TFile>(MemoryMappedViewAccessor view, long offset)
+			where TFile : struct, ILSPKFile
+		{
+			int numFiles = view.ReadInt32(offset);
+			byte[] compressed;
+			if (Pak.Metadata.Version > 13)
+			{
+				int compressedSize = view.ReadInt32(offset + 4);
+				compressed = new byte[compressedSize];
+				view.ReadArray(offset + 8, compressed, 0, compressedSize);
+			}
+			else
+			{
+				compressed = new byte[(int)Pak.Metadata.FileListSize - 4];
+				view.ReadArray(offset + 4, compressed, 0, (int)Pak.Metadata.FileListSize - 4);
+			}
 
-                throw new NotAPackageException("No valid signature found in package file");
-            }
-        }
-    }
+			int fileBufferSize = Marshal.SizeOf(typeof(TFile)) * numFiles;
+			var fileBuf = BinUtils.Decompress(compressed, fileBufferSize, CompressionFlags.MethodLZ4);
+
+			using var ms = new MemoryStream(fileBuf);
+			using var msr = new BinaryReader(ms);
+
+			var entries = new TFile[numFiles];
+			BinUtils.ReadStructs(msr, entries);
+
+			foreach (var entry in entries)
+			{
+				Pak.Files.Add(PackagedFileInfo.CreateFromEntry(Pak, entry, Pak.Parts[entry.ArchivePartNumber()], Pak.Views[entry.ArchivePartNumber()]));
+			}
+		}
+
+		private void ReadFileList<TFile>(MemoryMappedViewAccessor view, long offset)
+			where TFile : struct, ILSPKFile
+		{
+			var entries = new TFile[Pak.Metadata.NumFiles];
+			BinUtils.ReadStructs(view, offset, entries);
+
+			foreach (var entry in entries)
+			{
+				var file = PackagedFileInfo.CreateFromEntry(Pak, entry, Pak.Parts[entry.ArchivePartNumber()], Pak.Views[entry.ArchivePartNumber()]);
+				if (file.ArchivePart == 0)
+				{
+					file.OffsetInFile += Pak.Metadata.DataOffset;
+				}
+
+				Pak.Files.Add(file);
+			}
+		}
+
+		private Package ReadHeaderAndFileList<THeader, TFile>(MemoryMappedViewAccessor view, long offset)
+			where THeader : struct, ILSPKHeader
+			where TFile : struct, ILSPKFile
+		{
+			view.Read<THeader>(offset, out var header);
+
+			Pak.Metadata = header.ToCommonHeader();
+
+			if (MetadataOnly) return Pak;
+
+			Pak.OpenStreams((int)Pak.Metadata.NumParts);
+
+			if (Pak.Metadata.Version > 10)
+			{
+				Pak.Metadata.DataOffset = (uint)(offset + Marshal.SizeOf<THeader>());
+				ReadCompressedFileList<TFile>(view, (long)Pak.Metadata.FileListOffset);
+			}
+			else
+			{
+				ReadFileList<TFile>(view, offset + Marshal.SizeOf<THeader>());
+			}
+
+			if (Pak.Metadata.Flags.HasFlag(PackageFlags.Solid) && Pak.Files.Count > 0)
+			{
+				UnpackSolidSegment(view);
+			}
+
+			return Pak;
+		}
+
+		private void UnpackSolidSegment(MemoryMappedViewAccessor view)
+		{
+			// Calculate compressed frame offset and bounds
+			ulong totalUncompressedSize = 0;
+			ulong totalSizeOnDisk = 0;
+			ulong firstOffset = 0xffffffff;
+			ulong lastOffset = 0;
+
+			foreach (var entry in Pak.Files)
+			{
+				var file = entry as PackagedFileInfo;
+
+				totalUncompressedSize += file.UncompressedSize;
+				totalSizeOnDisk += file.SizeOnDisk;
+				if (file.OffsetInFile < firstOffset)
+				{
+					firstOffset = file.OffsetInFile;
+				}
+				if (file.OffsetInFile + file.SizeOnDisk > lastOffset)
+				{
+					lastOffset = file.OffsetInFile + file.SizeOnDisk;
+				}
+			}
+
+			if (firstOffset != Pak.Metadata.DataOffset + 7 || lastOffset - firstOffset != totalSizeOnDisk)
+			{
+				string msg = $"Incorrectly compressed solid archive; offsets {firstOffset}/{lastOffset}, bytes {totalSizeOnDisk}";
+				throw new InvalidDataException(msg);
+			}
+
+			// Decompress all files as a single frame (solid)
+			byte[] frame = new byte[lastOffset - Pak.Metadata.DataOffset];
+			view.ReadArray(Pak.Metadata.DataOffset, frame, 0, (int)(lastOffset - Pak.Metadata.DataOffset));
+
+			byte[] decompressed = Native.LZ4FrameCompressor.Decompress(frame);
+			var decompressedStream = new MemoryStream(decompressed);
+
+			// Update offsets to point to the decompressed chunk
+			ulong offset = Pak.Metadata.DataOffset + 7;
+			ulong compressedOffset = 0;
+			foreach (var entry in Pak.Files)
+			{
+				var file = entry as PackagedFileInfo;
+
+				if (file.OffsetInFile != offset)
+				{
+					throw new InvalidDataException("File list in solid archive not contiguous");
+				}
+
+				file.MakeSolid(compressedOffset, decompressedStream);
+
+				offset += file.SizeOnDisk;
+				compressedOffset += file.UncompressedSize;
+			}
+		}
+
+		private Package ProcessPackage(Package package)
+		{
+			var view = Pak.MetadataView;
+
+			// Check for v13 package headers
+			var headerSize = view.ReadInt32(view.Capacity - 8);
+			var signature = view.ReadUInt32(view.Capacity - 4);
+			if (signature == PackageHeaderCommon.Signature)
+			{
+				return ReadHeaderAndFileList<LSPKHeader13, FileEntry10>(view, view.Capacity - headerSize);
+			}
+
+			// Check for v10 package headers
+			signature = view.ReadUInt32(0);
+			Int32 version;
+			if (signature == PackageHeaderCommon.Signature)
+			{
+				version = view.ReadInt32(4);
+				return version switch
+				{
+					10 => ReadHeaderAndFileList<LSPKHeader10, FileEntry10>(view, 4),
+					15 => ReadHeaderAndFileList<LSPKHeader15, FileEntry15>(view, 4),
+					16 => ReadHeaderAndFileList<LSPKHeader16, FileEntry15>(view, 4),
+					18 => ReadHeaderAndFileList<LSPKHeader16, FileEntry18>(view, 4),
+					_ => throw new InvalidDataException($"Package version v{version} not supported")
+				};
+			}
+
+			// Check for v9 and v7 package headers
+			version = view.ReadInt32(0);
+			if (version == 7 || version == 9)
+			{
+				return ReadHeaderAndFileList<LSPKHeader7, FileEntry7>(view, 0);
+			}
+
+			throw new NotAPackageException("No valid signature found in package file");
+		}
+
+		public Package ReadInternal(string path)
+		{
+			Pak = new Package(path);
+			return ProcessPackage(Pak);
+		}
+
+		public Package ReadInternal(FileStream fs)
+		{
+			Pak = new Package(fs);
+			return ProcessPackage(Pak);
+		}
+
+		public Package Read(string path, bool metadataOnly = false)
+		{
+			MetadataOnly = metadataOnly;
+
+			try
+			{
+				return ReadInternal(path);
+			}
+			catch (Exception)
+			{
+				Pak?.Dispose();
+				throw;
+			}
+		}
+
+		public Package Read(FileStream fs, bool metadataOnly = false)
+		{
+			MetadataOnly = metadataOnly;
+
+			try
+			{
+				return ReadInternal(fs);
+			}
+			catch (Exception)
+			{
+				Pak?.Dispose();
+				throw;
+			}
+		}
+	}
 }

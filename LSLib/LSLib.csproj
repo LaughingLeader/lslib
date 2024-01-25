@@ -4,14 +4,8 @@
 		<LangVersion>9.0</LangVersion>
 		<OutputType>Library</OutputType>
 		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-		<ImplicitUsings>enable</ImplicitUsings>
+		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 	</PropertyGroup>
-	<ItemGroup>
-		<Using Remove="System.IO" />
-		<Using Remove="System.Net.Http" />
-		<Using Include="System.Runtime.InteropServices" />
-		<Using Include="System.Text" />
-	</ItemGroup>
 	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
 		<DefineConstants>TRACE;DEBUG;EXPORT_GPPG</DefineConstants>
 		<PlatformTarget>x64</PlatformTarget>
@@ -37,8 +31,12 @@
 		<Reference Include="System.Transactions" />
 	</ItemGroup>
 	<ItemGroup>
-		<ProjectReference Include="..\LSLibNative\LSLibNative.vcxproj" />
-		<ProjectReference Include="..\OpenTK\OpenTK.csproj" />
+		<ProjectReference Include="..\LSLibNative\LSLibNative.vcxproj">
+			<Name>LSLibNative</Name>
+		</ProjectReference>
+		<ProjectReference Include="..\OpenTK\OpenTK.csproj">
+			<Name>OpenTK</Name>
+		</ProjectReference>
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="System.Data.DataSetExtensions" Version="4.5.0" />
@@ -49,6 +47,7 @@
 		<PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="5.0.0" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 		<PackageReference Include="System.Buffers" Version="4.5.1" />
+		<PackageReference Include="System.IO.Hashing" Version="8.0.0" />
 		<PackageReference Include="System.Memory" Version="4.5.5" />
 		<PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
 		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.5.3" />
@@ -60,18 +59,18 @@
 
 	<Target Name="PreBuild" BeforeTargets="PreBuildEvent">
 		<ItemGroup>
-			<GpLex Include="$(SolutionDir)\external\gppg\binaries\GpLex"/>
-			<Gppg Include="$(SolutionDir)\external\gppg\binaries\Gppg"/>
+			<GpLex Include="$(SolutionDir)\external\gppg\binaries\GpLex" />
+			<Gppg Include="$(SolutionDir)\external\gppg\binaries\Gppg" />
 		</ItemGroup>
-		<Exec Command="@(GpLex) /out:&quot;$(ProjectDir)\LS\Story\GoalParser\Goal.lex.cs&quot; &quot;$(ProjectDir)\LS\Story\GoalParser\Goal.lex&quot;"/>
-		<Exec Command="@(Gppg) /out:&quot;$(ProjectDir)\LS\Story\GoalParser\Goal.yy.cs&quot; &quot;$(ProjectDir)\LS\Story\GoalParser\Goal.yy&quot;"/>
-		<Exec Command="@(GpLex) /out:&quot;$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.lex.cs&quot; &quot;$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.lex&quot;"/>
-		<Exec Command="@(Gppg) /out:&quot;$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.yy.cs&quot; &quot;$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.yy&quot;"/>
-		<Exec Command="@(GpLex) /out:&quot;$(ProjectDir)\LS\Stats\Parser\Stat.lex.cs&quot; &quot;$(ProjectDir)\LS\Stats\Parser\Stat.lex&quot;"/>
-		<Exec Command="@(Gppg) /out:&quot;$(ProjectDir)\LS\Stats\Parser\Stat.yy.cs&quot; &quot;$(ProjectDir)\LS\Stats\Parser\Stat.yy&quot;"/>
-		<Exec Command="@(GpLex) /out:&quot;$(ProjectDir)\LS\Stats\Parser\StatProperty.lex.cs&quot; &quot;$(ProjectDir)\LS\Stats\Parser\StatProperty.lex&quot;"/>
-		<Exec Command="@(Gppg) /out:&quot;$(ProjectDir)\LS\Stats\Parser\StatProperty.yy.cs&quot; &quot;$(ProjectDir)\LS\Stats\Parser\StatProperty.yy&quot;"/>
-		<Exec Command="@(GpLex) /out:&quot;$(ProjectDir)\LS\Stats\Parser\StatLua.lex.cs&quot; &quot;$(ProjectDir)\LS\Stats\Parser\StatLua.lex&quot;"/>
-		<Exec Command="@(Gppg) /out:&quot;$(ProjectDir)\LS\Stats\Parser\StatLua.yy.cs&quot; &quot;$(ProjectDir)\LS\Stats\Parser\StatLua.yy&quot;"/>
+		<Exec Command="@(GpLex) /out:&quot;$(ProjectDir)\LS\Story\GoalParser\Goal.lex.cs&quot; &quot;$(ProjectDir)\LS\Story\GoalParser\Goal.lex&quot;" />
+		<Exec Command="@(Gppg) /out:&quot;$(ProjectDir)\LS\Story\GoalParser\Goal.yy.cs&quot; &quot;$(ProjectDir)\LS\Story\GoalParser\Goal.yy&quot;" />
+		<Exec Command="@(GpLex) /out:&quot;$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.lex.cs&quot; &quot;$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.lex&quot;" />
+		<Exec Command="@(Gppg) /out:&quot;$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.yy.cs&quot; &quot;$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.yy&quot;" />
+		<Exec Command="@(GpLex) /out:&quot;$(ProjectDir)\LS\Stats\Parser\Stat.lex.cs&quot; &quot;$(ProjectDir)\LS\Stats\Parser\Stat.lex&quot;" />
+		<Exec Command="@(Gppg) /out:&quot;$(ProjectDir)\LS\Stats\Parser\Stat.yy.cs&quot; &quot;$(ProjectDir)\LS\Stats\Parser\Stat.yy&quot;" />
+		<Exec Command="@(GpLex) /out:&quot;$(ProjectDir)\LS\Stats\Parser\StatProperty.lex.cs&quot; &quot;$(ProjectDir)\LS\Stats\Parser\StatProperty.lex&quot;" />
+		<Exec Command="@(Gppg) /out:&quot;$(ProjectDir)\LS\Stats\Parser\StatProperty.yy.cs&quot; &quot;$(ProjectDir)\LS\Stats\Parser\StatProperty.yy&quot;" />
+		<Exec Command="@(GpLex) /out:&quot;$(ProjectDir)\LS\Stats\Parser\StatLua.lex.cs&quot; &quot;$(ProjectDir)\LS\Stats\Parser\StatLua.lex&quot;" />
+		<Exec Command="@(Gppg) /out:&quot;$(ProjectDir)\LS\Stats\Parser\StatLua.yy.cs&quot; &quot;$(ProjectDir)\LS\Stats\Parser\StatLua.yy&quot;" />
 	</Target>
 </Project>

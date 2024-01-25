@@ -290,7 +290,7 @@ namespace LSLib.LS
             }
             
             bool chunked = (Version >= LSFVersion.VerChunkedCompress && allowChunked);
-            bool isCompressed = BinUtils.CompressionFlagsToMethod(Metadata.CompressionFlags) != CompressionMethod.None;
+            bool isCompressed = Metadata.CompressionFlags.Method() != CompressionMethod.None;
             uint compressedSize = isCompressed ? sizeOnDisk : uncompressedSize;
             byte[] compressed = reader.ReadBytes((int)compressedSize);
             var uncompressed = BinUtils.Decompress(compressed, (int)uncompressedSize, Metadata.CompressionFlags, chunked);
