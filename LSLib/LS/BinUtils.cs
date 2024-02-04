@@ -207,10 +207,9 @@ namespace LSLib.LS
 
 		public static byte[] StringToNullTerminatedBytes(string s, int length)
 		{
-			var b = new byte[length];
-			int len = Encoding.UTF8.GetBytes(s, 0, length, b, 0);
-			Array.Clear(b, len, b.Length - len);
-			return b;
+			var bytes = Encoding.UTF8.GetBytes(s + "\0");
+			Array.Resize(ref bytes, length);
+			return bytes;
 		}
 
 		public static NodeAttribute ReadAttribute(NodeAttribute.DataType type, BinaryReader reader)
