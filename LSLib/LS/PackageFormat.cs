@@ -33,38 +33,38 @@ namespace LSLib.LS
 
 	internal static class ILSPKHelpers
 	{
-		internal static ILSPKHeader FromCommonHeader<T>(PackageHeaderCommon h) where T : ILSPKHeader
+		internal static T FromCommonHeader<T>(PackageHeaderCommon h) where T : ILSPKHeader
 		{
 			switch (typeof(T))
 			{
 				case Type type when type == typeof(LSPKHeader7):
-					return LSPKHeader7.FromCommonHeader(h);
+					return (T)LSPKHeader7.FromCommonHeader(h);
 				case Type type when type == typeof(LSPKHeader10):
-					return LSPKHeader10.FromCommonHeader(h);
+					return (T)LSPKHeader10.FromCommonHeader(h);
 				case Type type when type == typeof(LSPKHeader13):
-					return LSPKHeader13.FromCommonHeader(h);
+					return (T)LSPKHeader13.FromCommonHeader(h);
 				case Type type when type == typeof(LSPKHeader15):
-					return LSPKHeader15.FromCommonHeader(h);
+					return (T)LSPKHeader15.FromCommonHeader(h);
 				case Type type when type == typeof(LSPKHeader16):
-					return LSPKHeader16.FromCommonHeader(h);
+					return (T)LSPKHeader16.FromCommonHeader(h);
 			}
-			return null;
+			return default;
 		}
 
-		internal static ILSPKFile FromCommon<T>(PackagedFileInfoCommon info) where T : ILSPKFile
+		internal static T FromCommon<T>(PackagedFileInfoCommon info) where T : ILSPKFile
 		{
 			switch (typeof(T))
 			{
 				case Type type when type == typeof(FileEntry7):
-					return FileEntry7.FromCommon(info);
+					return (T)FileEntry7.FromCommon(info);
 				case Type type when type == typeof(FileEntry10):
-					return FileEntry10.FromCommon(info);
+					return (T)FileEntry10.FromCommon(info);
 				case Type type when type == typeof(FileEntry15):
-					return FileEntry15.FromCommon(info);
+					return (T)FileEntry15.FromCommon(info);
 				case Type type when type == typeof(FileEntry18):
-					return FileEntry18.FromCommon(info);
+					return (T)FileEntry18.FromCommon(info);
 			}
-			return null;
+			return default;
 		}
 	}
 
