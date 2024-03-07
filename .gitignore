@@ -5,6 +5,7 @@ _ReSharper.Caches/
 *.lo
 *.o
 *.obj
+obj/
 
 # Precompiled Headers
 *.gch
