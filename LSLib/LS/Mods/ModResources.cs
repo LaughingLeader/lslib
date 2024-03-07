@@ -6,6 +6,7 @@ namespace LSLib.LS;
 public class ModInfo(string name)
 {
     public string Name = name;
+    public string PackagePath = "";
 
     public string ModsPath;
     public string PublicPath;
@@ -240,6 +241,7 @@ public partial class ModPathVisitor
             if (FS.FileExists(metaPath))
             {
                 var mod = GetMod(modName);
+                mod.PackagePath = FS.GetPackagePath(metaPath);
                 mod.ModsPath = modPath;
                 mod.PublicPath = Path.Combine(PublicPath, Path.GetFileName(modPath));
                 mod.Meta = metaPath;

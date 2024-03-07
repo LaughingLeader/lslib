@@ -249,6 +249,16 @@ public class VFS : IDisposable
         return RootDir != null && File.Exists(Path.Combine(RootDir, path));
     }
 
+    public string GetPackagePath(string path)
+    {
+        var file = FindVFSFile(path);
+        if(file != null)
+        {
+            return file.Package.PackagePath;
+        }
+        return String.Empty;
+    }
+
     public List<string> EnumerateFiles(string path, bool recursive = false)
     {
         return EnumerateFiles(path, recursive, (path) => true);
