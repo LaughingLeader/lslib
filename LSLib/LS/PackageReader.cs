@@ -58,10 +58,10 @@ public class Package : IDisposable
         }
     }
 
-    internal Package(string path)
+    internal Package(string path, FileStream stream = null)
     {
         PackagePath = path;
-        var file = File.OpenRead(PackagePath);
+        var file = stream ?? File.OpenRead(PackagePath);
         MetadataFile = MemoryMappedFile.CreateFromFile(file, null, file.Length, MemoryMappedFileAccess.Read, HandleInheritability.None, false);
         MetadataView = MetadataFile.CreateViewAccessor(0, file.Length, MemoryMappedFileAccess.Read);
     }
@@ -232,9 +232,9 @@ public class PackageReader
         }
     }
 
-    public Package ReadInternal(string path)
+    public Package ReadInternal(Package pak)
     {
-        Pak = new Package(path);
+        Pak = pak;
         var view = Pak.MetadataView;
 
         // Check for v13 package headers
@@ -277,7 +277,22 @@ public class PackageReader
 
         try
         {
-            return ReadInternal(path);
+			return ReadInternal(new Package(path));
+        }
+        catch (Exception)
+        {
+            Pak?.Dispose();
+            throw;
+        }
+    }
+
+    public Package Read(string path, FileStream stream, bool metadataOnly = false)
+    {
+        MetadataOnly = metadataOnly;
+
+        try
+        {
+            return ReadInternal(new Package(path, stream));
         }
         catch (Exception)
         {
