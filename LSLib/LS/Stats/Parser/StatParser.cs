@@ -58,7 +58,7 @@ public partial class StatScanner
 
     public CodeLocation LastLocation()
     {
-        return new CodeLocation(null, tokLin, tokCol, tokELin, tokECol);
+        return new CodeLocation(this.fileName, tokLin, tokCol, tokELin, tokECol);
     }
 }
 
