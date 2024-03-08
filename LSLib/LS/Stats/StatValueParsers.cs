@@ -86,13 +86,17 @@ public class PropertyDiagnosticContainer
         foreach (var message in Messages)
         {
             var location = message.Location;
-            if(location?.FileName == null)
+            foreach (var ctx in message.Contexts)
             {
-                location = message.Contexts.FirstOrDefault(x => x.Location?.FileName != null).Location;
+                location ??= ctx.Location;
             }
 
-            context.LogError(DiagnosticCode.StatPropertyValueInvalid, message.Message,
-                location, message.Contexts);
+            if(location != null && String.IsNullOrEmpty(location.FileName))
+            {
+                location.FileName = message.Contexts.FirstOrDefault(x => x.Location?.FileName != null).Location?.FileName;
+            }
+
+            context.LogError(DiagnosticCode.StatPropertyValueInvalid, message.Message, location, message.Contexts);
         }
     }
 

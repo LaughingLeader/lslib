@@ -61,16 +61,15 @@ internal class ParserConstants
 
 public class CodeLocation : IMerge<CodeLocation>
 {
-    private string fileName;
     private int startLine;   // start line
     private int startColumn; // start column
     private int endLine;     // end line
     private int endColumn;   // end column
 
     /// <summary>
-    /// The line at which the text span starts.
+    /// The file that this code originates from.
     /// </summary>
-    public string FileName { get { return fileName; } }
+    public string FileName { get; set; }
 
     /// <summary>
     /// The line at which the text span starts.
@@ -107,7 +106,7 @@ public class CodeLocation : IMerge<CodeLocation>
     /// <param name="ec">end column</param>
     public CodeLocation(string fl, int sl, int sc, int el, int ec)
     {
-        fileName = fl;
+        FileName = fl;
         startLine = sl;
         startColumn = sc;
         endLine = el;
@@ -122,7 +121,7 @@ public class CodeLocation : IMerge<CodeLocation>
     /// <returns>The merged span</returns>
     public CodeLocation Merge(CodeLocation last)
     {
-        return new CodeLocation(this.fileName, this.startLine, this.startColumn, last.endLine, last.endColumn);
+        return new CodeLocation(FileName, this.startLine, this.startColumn, last.endLine, last.endColumn);
     }
 }
 
