@@ -236,14 +236,14 @@ public partial class ModPathVisitor
         foreach (var modPath in modPaths)
         {
             var modName = Path.GetFileName(modPath);
-            var metaPath = Path.Combine(modPath, "meta.lsx");
+            var metaPath = FS.Canonicalize(Path.Join(modPath, "meta.lsx"));
 
             if (FS.FileExists(metaPath))
             {
                 var mod = GetMod(modName);
                 mod.PackagePath = FS.GetPackagePath(metaPath);
                 mod.ModsPath = modPath;
-                mod.PublicPath = Path.Combine(PublicPath, Path.GetFileName(modPath));
+                mod.PublicPath = FS.Canonicalize(Path.Join(PublicPath, Path.GetFileName(modPath)));
                 mod.Meta = metaPath;
 
                 DiscoverModDirectory(mod);

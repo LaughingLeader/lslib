@@ -251,7 +251,7 @@ public class VFS : IDisposable
 
     public string GetPackagePath(string path)
     {
-        var file = FindVFSFile(path);
+        var file = FindVFSFile(Canonicalize(path));
         if(file != null)
         {
             return file.Package.PackagePath;
