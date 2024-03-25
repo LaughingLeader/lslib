@@ -65,10 +65,10 @@ public class StatLoadingError
 public class StatLoadingContext
 {
     public StatDefinitionRepository Definitions;
-    public List<StatLoadingError> Errors = [];
-    public Dictionary<string, Dictionary<string, StatDeclaration>> DeclarationsByType = [];
-    public Dictionary<string, Dictionary<string, StatDeclaration>> ResolvedDeclarationsByType = [];
-    public Dictionary<string, Dictionary<string, object>> GuidResources = [];
+    public List<StatLoadingError> Errors;
+    public Dictionary<string, Dictionary<string, StatDeclaration>> DeclarationsByType;
+    public Dictionary<string, Dictionary<string, StatDeclaration>> ResolvedDeclarationsByType;
+    public Dictionary<string, Dictionary<string, object>> GuidResources;
     public readonly HashSet<string> ObjectCategories = [];
 
     public void LogError(string code, string message, CodeLocation location = null, 
@@ -81,6 +81,28 @@ public class StatLoadingContext
             Location = location,
             Contexts = contexts
         });
+    }
+
+    public StatLoadingContext()
+    {
+        Errors = [];
+        DeclarationsByType = [];
+        ResolvedDeclarationsByType = [];
+        GuidResources = [];
+    }
+
+    public StatLoadingContext(StatLoadingContext other)
+    {
+        Definitions = new StatDefinitionRepository(other.Definitions);
+        Errors = new(other.Errors ?? []);
+        DeclarationsByType = new(other.DeclarationsByType ?? []);
+        ResolvedDeclarationsByType = new(other.ResolvedDeclarationsByType ?? []);
+        GuidResources = new(other.GuidResources ?? []);
+
+        foreach (var entry in other.ObjectCategories)
+        {
+            ObjectCategories.Add(entry);
+        }
     }
 }
 

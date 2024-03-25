@@ -51,17 +51,39 @@ public class VFSDirectory
         file = null;
         return false;
     }
+
+    public VFSDirectory() { }
+
+    public VFSDirectory(VFSDirectory other)
+    {
+        Path = other.Path;
+        Dirs = new(other.Dirs ?? []);
+        Files = new(other.Files ?? []);
+    }
 }
 
 public class VFS : IDisposable
 {
-    private List<Package> Packages = [];
+    private readonly List<Package> Packages;
+    private readonly VFSDirectory Root;
     private string RootDir;
-    private VFSDirectory Root = new();
 
     public void Dispose()
     {
         Packages.ForEach(p => p.Dispose());
+    }
+
+    public VFS()
+    {
+        Packages = [];
+        Root = new();
+    }
+
+    public VFS(VFS other, bool ignorePackages = false)
+    {
+        Packages = !ignorePackages ? new(other.Packages) : [];
+        RootDir = other.RootDir;
+        Root = new VFSDirectory(other.Root);
     }
 
     public void AttachRoot(string path)
