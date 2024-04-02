@@ -12,6 +12,7 @@
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<DebugType>none</DebugType>
 		<Optimize>True</Optimize>
+		<Platforms>AnyCPU;x64</Platforms>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='Editor Debug'">
@@ -19,17 +20,17 @@
 		<Optimize>False</Optimize>
 	</PropertyGroup>
 
-	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug' ">
 		<DefineConstants>TRACE;DEBUG;EXPORT_GPPG</DefineConstants>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
-	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release' ">
 		<DefineConstants>EXPORT_GPPG</DefineConstants>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Editor Debug|AnyCPU'">
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Editor Debug'">
 		<OutputPath>bin\Editor Debug\</OutputPath>
 		<DefineConstants>TRACE;EXPORT_GPPG</DefineConstants>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -39,7 +40,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\LSLibNative\LSLibNative.vcxproj"/>
+		<ProjectReference Include="..\LSLibNative\LSLibNative.vcxproj" />
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="OpenTK.Mathematics" Version="4.8.2" />
