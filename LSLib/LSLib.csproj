@@ -20,17 +20,17 @@
 		<Optimize>False</Optimize>
 	</PropertyGroup>
 
-	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug' ">
+	<PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
 		<DefineConstants>TRACE;DEBUG;EXPORT_GPPG</DefineConstants>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
-	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release' ">
+	<PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
 		<DefineConstants>EXPORT_GPPG</DefineConstants>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Editor Debug'">
+	<PropertyGroup Condition="'$(Configuration)' == 'Editor Debug'">
 		<OutputPath>bin\Editor Debug\</OutputPath>
 		<DefineConstants>TRACE;EXPORT_GPPG</DefineConstants>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
