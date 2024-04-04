@@ -53,8 +53,11 @@ public partial class ModPathVisitor
     public bool CollectGlobals = false;
     public bool CollectLevels = false;
     public bool CollectGuidResources = false;
+    public bool DetectDuplicates = false;
     public TargetGame Game = TargetGame.DOS2;
     public VFS FS;
+
+    public List<ModInfo> DuplicateMods { get; } = [];
 
     public ModPathVisitor(ModResources resources, VFS fs)
     {
@@ -69,18 +72,14 @@ public partial class ModPathVisitor
             mod = new ModInfo(modName);
             Resources.Mods[modName] = mod;
         }
+        else if(DetectDuplicates)
+        {
+            var duplicateMod = new ModInfo(modName);
+            DuplicateMods.Add(duplicateMod);
+            return duplicateMod;
+        }
 
         return mod;
-    }
-
-    private void AddGlobalsToMod(string modName, string path)
-    {
-        GetMod(modName).Globals.Add(path);
-    }
-
-    private void AddLevelObjectsToMod(string modName, string path)
-    {
-        GetMod(modName).LevelObjects.Add(path);
     }
 
     private void DiscoverModGoals(ModInfo mod)
