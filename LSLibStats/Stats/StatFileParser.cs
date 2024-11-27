@@ -66,6 +66,28 @@ public class StatLoadingContext(StatDefinitionRepository definitions)
     {
         Errors.Add(new StatLoadingError(code, message, location, contexts));
     }
+
+    public StatLoadingContext()
+    {
+        Errors = [];
+        DeclarationsByType = [];
+        ResolvedDeclarationsByType = [];
+        GuidResources = [];
+    }
+
+    public StatLoadingContext(StatLoadingContext other)
+    {
+        Definitions = new StatDefinitionRepository(other.Definitions);
+        Errors = new(other.Errors ?? []);
+        DeclarationsByType = new(other.DeclarationsByType ?? []);
+        ResolvedDeclarationsByType = new(other.ResolvedDeclarationsByType ?? []);
+        GuidResources = new(other.GuidResources ?? []);
+
+        foreach (var entry in other.ObjectCategories)
+        {
+            ObjectCategories.Add(entry);
+        }
+    }
 }
 
 class StatEntryReferenceResolver(StatLoadingContext context)

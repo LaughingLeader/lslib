@@ -15,6 +15,7 @@ public enum LSCompressionLevel
     Max
 };
 
+[Flags]
 public enum CompressionFlags : byte
 {
     MethodNone = 0,

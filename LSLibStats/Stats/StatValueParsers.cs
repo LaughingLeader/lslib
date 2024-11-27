@@ -90,8 +90,12 @@ public class PropertyDiagnosticContainer
                 location ??= ctx.Location;
             }
 
-            context.LogError(DiagnosticCode.StatPropertyValueInvalid, message.Message,
-                location, message.Contexts);
+            if(location != null && String.IsNullOrEmpty(location.FileName))
+            {
+                location.FileName = message.Contexts.FirstOrDefault(x => x.Location?.FileName != null).Location?.FileName;
+            }
+
+            context.LogError(DiagnosticCode.StatPropertyValueInvalid, message.Message, location, message.Contexts);
         }
     }
 

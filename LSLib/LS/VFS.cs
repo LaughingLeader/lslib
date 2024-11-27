@@ -1,4 +1,8 @@
-﻿namespace LSLib.LS;
+﻿using LSLib.LS.Enums;
+
+using System.Collections.Concurrent;
+
+namespace LSLib.LS;
 
 public class VFSDirectory
 {
@@ -51,17 +55,78 @@ public class VFSDirectory
         file = null;
         return false;
     }
+
+    public VFSDirectory() { }
+
+    public VFSDirectory(VFSDirectory other)
+    {
+        Path = other.Path;
+        Dirs = new(other.Dirs ?? []);
+        Files = new(other.Files ?? []);
+    }
 }
 
 public class VFS : IDisposable
 {
-    private List<Package> Packages = [];
+    private readonly List<Package> Packages;
+    private readonly VFSDirectory Root;
     private string RootDir;
-    private VFSDirectory Root = new();
 
-    public void Dispose()
+    private bool _isDisposed;
+
+    private static readonly EnumerationOptions _gameDataFolderOptions = new() 
+    { 
+        RecurseSubdirectories = true, 
+        IgnoreInaccessible = true,
+        MaxRecursionDepth = 1,
+        MatchCasing = MatchCasing.CaseInsensitive
+    };
+
+    private static readonly EnumerationOptions _flatEnumerationOptions = new() 
+    { 
+        RecurseSubdirectories = false,
+        IgnoreInaccessible = true,
+        MatchCasing = MatchCasing.CaseInsensitive
+    };
+
+    //Packages to ignore in DOS2 use the same names here (Textures.pak etc)
+    public static readonly HashSet<string> PackageBlacklistBG3 = [
+        "Assets.pak",
+        "Effects.pak",
+        "Engine.pak",
+        "EngineShaders.pak",
+        "Game.pak",
+        "GamePlatform.pak",
+        "Gustav_NavCloud.pak",
+        "Gustav_Textures.pak",
+        "Gustav_Video.pak",
+        "Icons.pak",
+        "LowTex.pak",
+        "Materials.pak",
+        "Minimaps.pak",
+        "Models.pak",
+        "PsoCache.pak",
+        "SharedSoundBanks.pak",
+        "SharedSounds.pak",
+        "Textures.pak",
+        "VirtualTextures.pak",
+        // Localization
+        "English_Animations.pak",
+        "VoiceMeta.pak",
+        "Voice.pak"
+    ];
+
+    public VFS()
     {
-        Packages.ForEach(p => p.Dispose());
+        Packages = [];
+        Root = new();
+    }
+
+    public VFS(VFS other, bool ignorePackages = false)
+    {
+        Packages = !ignorePackages ? new(other.Packages) : [];
+        RootDir = other.RootDir;
+        Root = new VFSDirectory(other.Root);
     }
 
     public void AttachRoot(string path)
@@ -74,68 +139,56 @@ public class VFS : IDisposable
         RootDir = null;
     }
 
-    public void AttachGameDirectory(string gameDataPath, bool excludeAssets = true)
+    private static bool CanProcessPak(string path, HashSet<string> packageBlacklist)
+    {
+        var baseName = Path.GetFileName(path);
+        if (!packageBlacklist.Contains(baseName)
+            // Don't load 2nd, 3rd, ... parts of a multi-part archive
+            && !ModPathVisitor.archivePartRe.IsMatch(baseName))
+        {
+            return true;
+        }
+        return false;
+    }
+
+    private void ProcessPartition(IEnumerator<string> partition)
+    {
+        using (partition)
+        {
+            while (partition.MoveNext())
+            {
+                AttachPackage(partition.Current);
+            }
+        }
+    }
+
+    public void AttachDirectory(string directoryPath, EnumerationOptions opts = null, HashSet<string> packageBlacklist = null)
+    {
+        if (Directory.Exists(directoryPath))
+        {
+            // List of packages we won't ever load
+            // These packages don't contain any mod resources, but have a large
+            // file table that makes loading unneccessarily slow.
+
+            packageBlacklist ??= [];
+            opts ??= _flatEnumerationOptions;
+
+            var files = Directory.GetFiles(directoryPath, "*.pak", opts).Where(x => CanProcessPak(x, packageBlacklist));
+            Partitioner.Create(files)
+                .GetPartitions(Environment.ProcessorCount)
+                .AsParallel()
+                .ForAll(ProcessPartition);
+        }
+    }
+
+    public void AttachGameDirectory(string gameDataPath, bool excludeAssets = true, EnumerationOptions opts = null, HashSet<string> packageBlacklist = null)
     {
         AttachRoot(gameDataPath);
-
-        // List of packages we won't ever load
-        // These packages don't contain any mod resources, but have a large
-        // file table that makes loading unneccessarily slow.
-        HashSet<string> packageBlacklist = [];
-
-        if (excludeAssets)
-        {
-            packageBlacklist = [
-                "Assets.pak",
-                "Effects.pak",
-                "Engine.pak",
-                "EngineShaders.pak",
-                "Game.pak",
-                "GamePlatform.pak",
-                "Gustav_NavCloud.pak",
-                "Gustav_Textures.pak",
-                "Gustav_Video.pak",
-                "Icons.pak",
-                "LowTex.pak",
-                "Materials.pak",
-                "Minimaps.pak",
-                "Models.pak",
-                "PsoCache.pak",
-                "SharedSoundBanks.pak",
-                "SharedSounds.pak",
-                "Textures.pak",
-                "VirtualTextures.pak",
-                // Localization
-                "English_Animations.pak",
-                "VoiceMeta.pak",
-                "Voice.pak"
-            ];
-        }
-
-        // Collect priority value from headers
-        var packagePriorities = new List<Tuple<string, int>>();
-
-        foreach (var path in Directory.GetFiles(gameDataPath, "*.pak"))
-        {
-            var baseName = Path.GetFileName(path);
-            if (!packageBlacklist.Contains(baseName)
-                // Don't load 2nd, 3rd, ... parts of a multi-part archive
-                && !ModPathVisitor.archivePartRe.IsMatch(baseName))
-            {
-                AttachPackage(path);
-            }
-        }
-
-        foreach (var path in Directory.GetFiles(Path.Join(gameDataPath, "Localization"), "*.pak"))
-        {
-            var baseName = Path.GetFileName(path);
-            if (!packageBlacklist.Contains(baseName)
-                // Don't load 2nd, 3rd, ... parts of a multi-part archive
-                && !ModPathVisitor.archivePartRe.IsMatch(baseName))
-            {
-                AttachPackage(path);
-            }
-        }
+        //Recurse subdirectories in the Data folder, to load Localization folder paks
+        opts ??= _gameDataFolderOptions;
+        // Ignore common Data folder paks, if a list isn't specified
+        packageBlacklist ??= excludeAssets ? PackageBlacklistBG3 : [];
+        AttachDirectory(gameDataPath, opts, packageBlacklist);
     }
 
     public void AttachPackage(string path)
@@ -166,12 +219,12 @@ public class VFS : IDisposable
             var endPos = path.IndexOf('/', namePos);
             if (endPos >= 0)
             {
-                node = node.GetOrAddDirectory(path.Substring(0, endPos), path.Substring(namePos, endPos - namePos));
+                node = node.GetOrAddDirectory(path[..endPos], path[namePos..endPos]);
                 namePos = endPos + 1;
             }
             else
             {
-                node.AddFile(path.Substring(namePos), file);
+                node.AddFile(path[namePos..], file);
                 break;
             }
         } while (true);
@@ -252,6 +305,16 @@ public class VFS : IDisposable
     {
         if (FindVFSFile(Canonicalize(path)) != null) return true;
         return RootDir != null && File.Exists(Path.Combine(RootDir, path));
+    }
+
+    public string GetPackagePath(string path)
+    {
+        var file = FindVFSFile(Canonicalize(path));
+        if(file != null)
+        {
+            return file.Package.PackagePath;
+        }
+        return String.Empty;
     }
 
     public List<string> EnumerateFiles(string path, bool recursive = false)
@@ -386,4 +449,25 @@ public class VFS : IDisposable
 
         return stream;
     }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_isDisposed)
+        {
+            if (disposing)
+            {
+                Packages?.ForEach(p => p.Dispose());
+            }
+
+            _isDisposed = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    ~VFS() => Dispose(false);
 }
