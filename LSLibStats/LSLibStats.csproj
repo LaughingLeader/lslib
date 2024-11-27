@@ -1,17 +1,28 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>annotations</Nullable>
+	</PropertyGroup>
 
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>annotations</Nullable>
-  </PropertyGroup>
+	<Target Name="PreBuildGppgFiles" BeforeTargets="PreBuildEvent">
+		<ItemGroup>
+			<GpLex Include="..\external\gppg\binaries\GpLex" />
+			<Gppg Include="..\external\gppg\binaries\Gppg" />
+		</ItemGroup>
+		<Exec Condition="!Exists('$(ProjectDir)Stats\File\Stat.lex.cs')" Command="@(GpLex) /out:&quot;$(ProjectDir)Stats\File\Stat.lex.cs&quot; &quot;$(ProjectDir)Stats\File\Stat.lex&quot;" />
+		<Exec Condition="!Exists('$(ProjectDir)Stats\File\Stat.yy.cs')" Command="@(Gppg) /out:&quot;$(ProjectDir)Stats\File\Stat.yy.cs&quot; &quot;$(ProjectDir)Stats\File\Stat.yy&quot;" />
+		<Exec Condition="!Exists('$(ProjectDir)Stats\Functor\Functor.lex.cs')" Command="@(GpLex) /out:&quot;$(ProjectDir)Stats\Functor\Functor.lex.cs&quot; &quot;$(ProjectDir)Stats\Functor\Functor.lex&quot;" />
+		<Exec Condition="!Exists('$(ProjectDir)Stats\Functor\Functor.yy.cs')" Command="@(Gppg) /out:&quot;$(ProjectDir)Stats\Functor\Functor.yy.cs&quot; &quot;$(ProjectDir)Stats\Functor\Functor.yy&quot;" />
+		<Exec Condition="!Exists('$(ProjectDir)Stats\Functor\Lua.lex.cs')" Command="@(GpLex) /out:&quot;$(ProjectDir)Stats\Functor\Lua.lex.cs&quot; &quot;$(ProjectDir)Stats\Functor\Lua.lex&quot;" />
+		<Exec Condition="!Exists('$(ProjectDir)Stats\Functor\Lua.yy.cs')" Command="@(Gppg) /out:&quot;$(ProjectDir)Stats\Functor\Lua.yy.cs&quot; &quot;$(ProjectDir)Stats\Functor\Lua.yy&quot;" />
+		<Exec Condition="!Exists('$(ProjectDir)Stats\Functor\Requirement.lex.cs')" Command="@(GpLex) /out:&quot;$(ProjectDir)Stats\Functor\Requirement.lex.cs&quot; &quot;$(ProjectDir)Stats\Functor\Requirement.lex&quot;" />
+		<Exec Condition="!Exists('$(ProjectDir)Stats\Functor\Requirement.yy.cs')" Command="@(Gppg) /out:&quot;$(ProjectDir)Stats\Functor\Requirement.yy.cs&quot; &quot;$(ProjectDir)Stats\Functor\Requirement.yy&quot;" />
+		<Exec Condition="!Exists('$(ProjectDir)Stats\Functor\RollConditions.lex.cs')" Command="@(GpLex) /out:&quot;$(ProjectDir)Stats\Functor\RollConditions.lex.cs&quot; &quot;$(ProjectDir)Stats\Functor\RollConditions.lex&quot;" />
+		<Exec Condition="!Exists('$(ProjectDir)Stats\Functor\RollConditions.yy.cs')" Command="@(Gppg) /out:&quot;$(ProjectDir)Stats\Functor\RollConditions.yy.cs&quot; &quot;$(ProjectDir)Stats\Functor\RollConditions.yy&quot;" />
+	</Target>
 
-  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-    <Exec Command="&quot;$(SolutionDir)\external\gppg\binaries\GpLex&quot; /out:&quot;$(MSBuildProjectDirectory)\Stats\File\Stat.lex.cs&quot; &quot;$(MSBuildProjectDirectory)\Stats\File\Stat.lex&quot;&#xD;&#xA;&quot;$(SolutionDir)\external\gppg\binaries\Gppg&quot; /out:&quot;$(MSBuildProjectDirectory)\Stats\File\Stat.yy.cs&quot; &quot;$(MSBuildProjectDirectory)\Stats\File\Stat.yy&quot;&#xD;&#xA;&#xD;&#xA;&quot;$(SolutionDir)\external\gppg\binaries\GpLex&quot; /out:&quot;$(MSBuildProjectDirectory)\Stats\Functor\Functor.lex.cs&quot; &quot;$(MSBuildProjectDirectory)\Stats\Functor\Functor.lex&quot;&#xD;&#xA;&quot;$(SolutionDir)\external\gppg\binaries\Gppg&quot; /out:&quot;$(MSBuildProjectDirectory)\Stats\Functor\Functor.yy.cs&quot; &quot;$(MSBuildProjectDirectory)\Stats\Functor\Functor.yy&quot;&#xD;&#xA;&#xD;&#xA;&quot;$(SolutionDir)\external\gppg\binaries\GpLex&quot; /out:&quot;$(MSBuildProjectDirectory)\Stats\Functor\Lua.lex.cs&quot; &quot;$(MSBuildProjectDirectory)\Stats\Functor\Lua.lex&quot;&#xD;&#xA;&quot;$(SolutionDir)\external\gppg\binaries\Gppg&quot; /out:&quot;$(MSBuildProjectDirectory)\Stats\Functor\Lua.yy.cs&quot; &quot;$(MSBuildProjectDirectory)\Stats\Functor\Lua.yy&quot;&#xD;&#xA;&#xD;&#xA;&quot;$(SolutionDir)\external\gppg\binaries\GpLex&quot; /out:&quot;$(MSBuildProjectDirectory)\Stats\Functor\Requirement.lex.cs&quot; &quot;$(MSBuildProjectDirectory)\Stats\Functor\Requirement.lex&quot;&#xD;&#xA;&quot;$(SolutionDir)\external\gppg\binaries\Gppg&quot; /out:&quot;$(MSBuildProjectDirectory)\Stats\Functor\Requirement.yy.cs&quot; &quot;$(MSBuildProjectDirectory)\Stats\Functor\Requirement.yy&quot;&#xD;&#xA;&#xD;&#xA;&quot;$(SolutionDir)\external\gppg\binaries\GpLex&quot; /out:&quot;$(MSBuildProjectDirectory)\Stats\Functor\RollConditions.lex.cs&quot; &quot;$(MSBuildProjectDirectory)\Stats\Functor\RollConditions.lex&quot;&#xD;&#xA;&quot;$(SolutionDir)\external\gppg\binaries\Gppg&quot; /out:&quot;$(MSBuildProjectDirectory)\Stats\Functor\RollConditions.yy.cs&quot; &quot;$(MSBuildProjectDirectory)\Stats\Functor\RollConditions.yy&quot;&#xD;&#xA;" />
-  </Target>
-
-  <ItemGroup>
-    <ProjectReference Include="..\LSLib\LSLib.csproj" />
-  </ItemGroup>
-
+	<ItemGroup>
+		<ProjectReference Include="..\LSLib\LSLib.csproj" />
+	</ItemGroup>
 </Project>

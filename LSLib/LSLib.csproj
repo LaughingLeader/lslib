@@ -1,73 +1,69 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-	<PropertyGroup>
-		<TargetFramework>net8.0</TargetFramework>
-		<OutputType>Library</OutputType>
-		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-		<PlatformTarget>x64</PlatformTarget>
-		<AssemblyTitle>LSLib</AssemblyTitle>
-		<Product>LSLib</Product>
-		<Copyright>Copyright © Norbyte 2012-2023</Copyright>
-		<AssemblyVersion>1.18.5.0</AssemblyVersion>
-		<FileVersion>1.18.5.0</FileVersion>
-		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-		<DebugType>none</DebugType>
-		<Optimize>True</Optimize>
-		<Platforms>AnyCPU;x64</Platforms>
-	</PropertyGroup>
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <OutputType>Library</OutputType>
+        <AssemblyTitle>LSLib</AssemblyTitle>
+        <Product>LSLib</Product>
+        <Copyright>Copyright © Norbyte 2012-2023</Copyright>
+        <AssemblyVersion>1.18.5.0</AssemblyVersion>
+        <FileVersion>1.18.5.0</FileVersion>
+        <Platforms>AnyCPU;x64</Platforms>
+        <PlatformTarget>x64</PlatformTarget>
+        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+        <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <DebugType>none</DebugType>
+        <Optimize>True</Optimize>
+    </PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='Editor Debug'">
-		<DebugType>full</DebugType>
-		<Optimize>False</Optimize>
-	</PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='Editor Debug'">
+        <DebugType>full</DebugType>
+        <Optimize>False</Optimize>
+    </PropertyGroup>
 
-	<PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
-		<DefineConstants>TRACE;DEBUG;EXPORT_GPPG</DefineConstants>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-	</PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+        <DefineConstants>TRACE;DEBUG;EXPORT_GPPG</DefineConstants>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
 
-	<PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-		<DefineConstants>EXPORT_GPPG</DefineConstants>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-	</PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+        <DefineConstants>EXPORT_GPPG</DefineConstants>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)' == 'Editor Debug'">
-		<OutputPath>bin\Editor Debug\</OutputPath>
-		<DefineConstants>TRACE;EXPORT_GPPG</DefineConstants>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<Optimize>true</Optimize>
-		<PlatformTarget>x86</PlatformTarget>
-		<CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-	</PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)' == 'Editor Debug'">
+        <OutputPath>bin\Editor Debug\</OutputPath>
+        <DefineConstants>TRACE;EXPORT_GPPG</DefineConstants>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <Optimize>true</Optimize>
+        <PlatformTarget>x86</PlatformTarget>
+        <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    </PropertyGroup>
 
-	<ItemGroup>
-		<ProjectReference Include="..\LSLibNative\LSLibNative.vcxproj" />
-	</ItemGroup>
-	<ItemGroup>
-		<PackageReference Include="OpenTK.Mathematics" Version="4.8.2" />
-		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-	</ItemGroup>
-	<ItemGroup>
-		<PackageReference Include="lz4net" Version="1.0.15.93" />
-		<PackageReference Include="System.IO.Hashing" Version="9.0.0" />
-		<PackageReference Include="System.Net.Http" Version="4.3.4" />
-		<PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
-		<PackageReference Include="ZstdSharp.Port" Version="0.8.3" />
-	</ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\LSLibNative\LSLibNative.vcxproj" />
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="OpenTK.Mathematics" Version="4.8.2" />
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="lz4net" Version="1.0.15.93" />
+        <PackageReference Include="System.IO.Hashing" Version="9.0.0" />
+        <PackageReference Include="System.Net.Http" Version="4.3.4" />
+        <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
+        <PackageReference Include="ZstdSharp.Port" Version="0.8.3" />
+    </ItemGroup>
 
-	<Target Name="PreBuildGppgFiles" BeforeTargets="PreBuildEvent">
-		<ItemGroup>
-			<GpLex Include="..\external\gppg\binaries\GpLex" />
-			<Gppg Include="..\external\gppg\binaries\Gppg" />
-		</ItemGroup>
-		<Exec Condition="!Exists('$(ProjectDir)\LS\Story\GoalParser\Goal.lex.cs')" Command="@(GpLex) /out:&quot;$(ProjectDir)\LS\Story\GoalParser\Goal.lex.cs&quot; &quot;$(ProjectDir)\LS\Story\GoalParser\Goal.lex&quot;" />
-		<Exec Condition="!Exists('$(ProjectDir)\LS\Story\GoalParser\Goal.yy.cs')" Command="@(Gppg) /out:&quot;$(ProjectDir)\LS\Story\GoalParser\Goal.yy.cs&quot; &quot;$(ProjectDir)\LS\Story\GoalParser\Goal.yy&quot;" />
-		<Exec Condition="!Exists('$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.lex.cs')" Command="@(GpLex) /out:&quot;$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.lex.cs&quot; &quot;$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.lex&quot;" />
-		<Exec Condition="!Exists('$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.yy.cs')" Command="@(Gppg) /out:&quot;$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.yy.cs&quot; &quot;$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.yy&quot;" />
-		<Exec Condition="!Exists('$(ProjectDir)\LS\Stats\Parser\Stat.lex.cs')" Command="@(GpLex) /out:&quot;$(ProjectDir)\LS\Stats\Parser\Stat.lex.cs&quot; &quot;$(ProjectDir)\LS\Stats\Parser\Stat.lex&quot;" />
-		<Exec Condition="!Exists('$(ProjectDir)\LS\Stats\Parser\Stat.yy.cs')" Command="@(Gppg) /out:&quot;$(ProjectDir)\LS\Stats\Parser\Stat.yy.cs&quot; &quot;$(ProjectDir)\LS\Stats\Parser\Stat.yy&quot;" />
-		<Exec Condition="!Exists('$(ProjectDir)\LS\Stats\Parser\StatProperty.lex.cs')" Command="@(GpLex) /out:&quot;$(ProjectDir)\LS\Stats\Parser\StatProperty.lex.cs&quot; &quot;$(ProjectDir)\LS\Stats\Parser\StatProperty.lex&quot;" />
-		<Exec Condition="!Exists('$(ProjectDir)\LS\Stats\Parser\StatProperty.yy.cs')" Command="@(Gppg) /out:&quot;$(ProjectDir)\LS\Stats\Parser\StatProperty.yy.cs&quot; &quot;$(ProjectDir)\LS\Stats\Parser\StatProperty.yy&quot;" />
-		<Exec Condition="!Exists('$(ProjectDir)\LS\Stats\Parser\StatLua.lex.cs')" Command="@(GpLex) /out:&quot;$(ProjectDir)\LS\Stats\Parser\StatLua.lex.cs&quot; &quot;$(ProjectDir)\LS\Stats\Parser\StatLua.lex&quot;" />
-		<Exec Condition="!Exists('$(ProjectDir)\LS\Stats\Parser\StatLua.yy.cs')" Command="@(Gppg) /out:&quot;$(ProjectDir)\LS\Stats\Parser\StatLua.yy.cs&quot; &quot;$(ProjectDir)\LS\Stats\Parser\StatLua.yy&quot;" />
-	</Target>
+    <Target Name="PreBuildGppgFiles" BeforeTargets="PreBuildEvent">
+        <ItemGroup>
+            <GpLex Include="..\external\gppg\binaries\GpLex" />
+            <Gppg Include="..\external\gppg\binaries\Gppg" />
+        </ItemGroup>
+
+        <Exec Condition="!Exists('$(ProjectDir)\LS\Story\GoalParser\Goal.lex.cs')" Command="@(GpLex) /out:&quot;$(ProjectDir)\LS\Story\GoalParser\Goal.lex.cs&quot; &quot;$(ProjectDir)\LS\Story\GoalParser\Goal.lex&quot;" />
+        <Exec Condition="!Exists('$(ProjectDir)\LS\Story\GoalParser\Goal.yy.cs')" Command="@(Gppg) /out:&quot;$(ProjectDir)\LS\Story\GoalParser\Goal.yy.cs&quot; &quot;$(ProjectDir)\LS\Story\GoalParser\Goal.yy&quot;" />
+        <Exec Condition="!Exists('$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.lex.cs')" Command="@(GpLex) /out:&quot;$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.lex.cs&quot; &quot;$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.lex&quot;" />
+        <Exec Condition="!Exists('$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.yy.cs')" Command="@(Gppg) /out:&quot;$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.yy.cs&quot; &quot;$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.yy&quot;" />
+    </Target>
 </Project>
