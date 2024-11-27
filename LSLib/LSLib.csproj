@@ -48,8 +48,10 @@
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="lz4net" Version="1.0.15.93" />
-		<PackageReference Include="System.IO.Hashing" Version="8.0.0" />
-		<PackageReference Include="ZstdSharp.Port" Version="0.8.1" />
+		<PackageReference Include="System.IO.Hashing" Version="9.0.0" />
+		<PackageReference Include="System.Net.Http" Version="4.3.4" />
+		<PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
+		<PackageReference Include="ZstdSharp.Port" Version="0.8.3" />
 	</ItemGroup>
 
 	<Target Name="PreBuildGppgFiles" BeforeTargets="PreBuildEvent">
@@ -57,15 +59,15 @@
 			<GpLex Include="..\external\gppg\binaries\GpLex" />
 			<Gppg Include="..\external\gppg\binaries\Gppg" />
 		</ItemGroup>
-		<Exec Condition="!Exists('$(MSBuildProjectDirectory)\LS\Story\GoalParser\Goal.lex.cs')" Command="@(GpLex) /out:&quot;$(MSBuildProjectDirectory)\LS\Story\GoalParser\Goal.lex.cs&quot; &quot;$(MSBuildProjectDirectory)\LS\Story\GoalParser\Goal.lex&quot;" />
-		<Exec Condition="!Exists('$(MSBuildProjectDirectory)\LS\Story\GoalParser\Goal.yy.cs')" Command="@(Gppg) /out:&quot;$(MSBuildProjectDirectory)\LS\Story\GoalParser\Goal.yy.cs&quot; &quot;$(MSBuildProjectDirectory)\LS\Story\GoalParser\Goal.yy&quot;" />
-		<Exec Condition="!Exists('$(MSBuildProjectDirectory)\LS\Story\HeaderParser\StoryHeader.lex.cs')" Command="@(GpLex) /out:&quot;$(MSBuildProjectDirectory)\LS\Story\HeaderParser\StoryHeader.lex.cs&quot; &quot;$(MSBuildProjectDirectory)\LS\Story\HeaderParser\StoryHeader.lex&quot;" />
-		<Exec Condition="!Exists('$(MSBuildProjectDirectory)\LS\Story\HeaderParser\StoryHeader.yy.cs')" Command="@(Gppg) /out:&quot;$(MSBuildProjectDirectory)\LS\Story\HeaderParser\StoryHeader.yy.cs&quot; &quot;$(MSBuildProjectDirectory)\LS\Story\HeaderParser\StoryHeader.yy&quot;" />
-		<Exec Condition="!Exists('$(MSBuildProjectDirectory)\LS\Stats\Parser\Stat.lex.cs')" Command="@(GpLex) /out:&quot;$(MSBuildProjectDirectory)\LS\Stats\Parser\Stat.lex.cs&quot; &quot;$(MSBuildProjectDirectory)\LS\Stats\Parser\Stat.lex&quot;" />
-		<Exec Condition="!Exists('$(MSBuildProjectDirectory)\LS\Stats\Parser\Stat.yy.cs')" Command="@(Gppg) /out:&quot;$(MSBuildProjectDirectory)\LS\Stats\Parser\Stat.yy.cs&quot; &quot;$(MSBuildProjectDirectory)\LS\Stats\Parser\Stat.yy&quot;" />
-		<Exec Condition="!Exists('$(MSBuildProjectDirectory)\LS\Stats\Parser\StatProperty.lex.cs')" Command="@(GpLex) /out:&quot;$(MSBuildProjectDirectory)\LS\Stats\Parser\StatProperty.lex.cs&quot; &quot;$(MSBuildProjectDirectory)\LS\Stats\Parser\StatProperty.lex&quot;" />
-		<Exec Condition="!Exists('$(MSBuildProjectDirectory)\LS\Stats\Parser\StatProperty.yy.cs')" Command="@(Gppg) /out:&quot;$(MSBuildProjectDirectory)\LS\Stats\Parser\StatProperty.yy.cs&quot; &quot;$(MSBuildProjectDirectory)\LS\Stats\Parser\StatProperty.yy&quot;" />
-		<Exec Condition="!Exists('$(MSBuildProjectDirectory)\LS\Stats\Parser\StatLua.lex.cs')" Command="@(GpLex) /out:&quot;$(MSBuildProjectDirectory)\LS\Stats\Parser\StatLua.lex.cs&quot; &quot;$(MSBuildProjectDirectory)\LS\Stats\Parser\StatLua.lex&quot;" />
-		<Exec Condition="!Exists('$(MSBuildProjectDirectory)\LS\Stats\Parser\StatLua.yy.cs')" Command="@(Gppg) /out:&quot;$(MSBuildProjectDirectory)\LS\Stats\Parser\StatLua.yy.cs&quot; &quot;$(MSBuildProjectDirectory)\LS\Stats\Parser\StatLua.yy&quot;" />
+		<Exec Condition="!Exists('$(ProjectDir)\LS\Story\GoalParser\Goal.lex.cs')" Command="@(GpLex) /out:&quot;$(ProjectDir)\LS\Story\GoalParser\Goal.lex.cs&quot; &quot;$(ProjectDir)\LS\Story\GoalParser\Goal.lex&quot;" />
+		<Exec Condition="!Exists('$(ProjectDir)\LS\Story\GoalParser\Goal.yy.cs')" Command="@(Gppg) /out:&quot;$(ProjectDir)\LS\Story\GoalParser\Goal.yy.cs&quot; &quot;$(ProjectDir)\LS\Story\GoalParser\Goal.yy&quot;" />
+		<Exec Condition="!Exists('$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.lex.cs')" Command="@(GpLex) /out:&quot;$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.lex.cs&quot; &quot;$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.lex&quot;" />
+		<Exec Condition="!Exists('$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.yy.cs')" Command="@(Gppg) /out:&quot;$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.yy.cs&quot; &quot;$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.yy&quot;" />
+		<Exec Condition="!Exists('$(ProjectDir)\LS\Stats\Parser\Stat.lex.cs')" Command="@(GpLex) /out:&quot;$(ProjectDir)\LS\Stats\Parser\Stat.lex.cs&quot; &quot;$(ProjectDir)\LS\Stats\Parser\Stat.lex&quot;" />
+		<Exec Condition="!Exists('$(ProjectDir)\LS\Stats\Parser\Stat.yy.cs')" Command="@(Gppg) /out:&quot;$(ProjectDir)\LS\Stats\Parser\Stat.yy.cs&quot; &quot;$(ProjectDir)\LS\Stats\Parser\Stat.yy&quot;" />
+		<Exec Condition="!Exists('$(ProjectDir)\LS\Stats\Parser\StatProperty.lex.cs')" Command="@(GpLex) /out:&quot;$(ProjectDir)\LS\Stats\Parser\StatProperty.lex.cs&quot; &quot;$(ProjectDir)\LS\Stats\Parser\StatProperty.lex&quot;" />
+		<Exec Condition="!Exists('$(ProjectDir)\LS\Stats\Parser\StatProperty.yy.cs')" Command="@(Gppg) /out:&quot;$(ProjectDir)\LS\Stats\Parser\StatProperty.yy.cs&quot; &quot;$(ProjectDir)\LS\Stats\Parser\StatProperty.yy&quot;" />
+		<Exec Condition="!Exists('$(ProjectDir)\LS\Stats\Parser\StatLua.lex.cs')" Command="@(GpLex) /out:&quot;$(ProjectDir)\LS\Stats\Parser\StatLua.lex.cs&quot; &quot;$(ProjectDir)\LS\Stats\Parser\StatLua.lex&quot;" />
+		<Exec Condition="!Exists('$(ProjectDir)\LS\Stats\Parser\StatLua.yy.cs')" Command="@(Gppg) /out:&quot;$(ProjectDir)\LS\Stats\Parser\StatLua.yy.cs&quot; &quot;$(ProjectDir)\LS\Stats\Parser\StatLua.yy&quot;" />
 	</Target>
 </Project>
