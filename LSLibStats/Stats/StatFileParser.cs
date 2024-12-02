@@ -52,9 +52,9 @@ public class StatLoadingError(string code, string message, CodeLocation? locatio
     public List<PropertyDiagnosticContext>? Contexts = contexts;
 }
 
-public class StatLoadingContext(StatDefinitionRepository definitions)
+public class StatLoadingContext
 {
-    public StatDefinitionRepository Definitions = definitions;
+    public StatDefinitionRepository Definitions;
     public List<StatLoadingError> Errors = [];
     public Dictionary<string, Dictionary<string, StatDeclaration>> DeclarationsByType = [];
     public Dictionary<string, Dictionary<string, StatDeclaration>> ResolvedDeclarationsByType = [];
@@ -67,17 +67,14 @@ public class StatLoadingContext(StatDefinitionRepository definitions)
         Errors.Add(new StatLoadingError(code, message, location, contexts));
     }
 
-    public StatLoadingContext()
+    public StatLoadingContext(StatDefinitionRepository definitions)
     {
-        Errors = [];
-        DeclarationsByType = [];
-        ResolvedDeclarationsByType = [];
-        GuidResources = [];
+        Definitions = definitions;
     }
 
     public StatLoadingContext(StatLoadingContext other)
     {
-        Definitions = new StatDefinitionRepository(other.Definitions);
+        Definitions = other.Definitions;
         Errors = new(other.Errors ?? []);
         DeclarationsByType = new(other.DeclarationsByType ?? []);
         ResolvedDeclarationsByType = new(other.ResolvedDeclarationsByType ?? []);
