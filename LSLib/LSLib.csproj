@@ -55,6 +55,10 @@
         <PackageReference Include="ZstdSharp.Port" Version="0.8.3" />
     </ItemGroup>
 
+    <Target Name="CleanGppgFiles" AfterTargets="Clean">
+        <Delete Files="$(ProjectDir)\LS\Story\GoalParser\Goal.lex.cs;$(ProjectDir)\LS\Story\GoalParser\Goal.yy.cs;$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.lex.cs;$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.yy.cs" ContinueOnError="true" TreatErrorsAsWarnings="true" />
+    </Target>
+
     <Target Name="PreBuildGppgFiles" BeforeTargets="PreBuildEvent">
         <ItemGroup>
             <GpLex Include="..\external\gppg\binaries\GpLex" />
