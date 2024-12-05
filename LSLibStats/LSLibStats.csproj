@@ -5,6 +5,10 @@
 		<Nullable>annotations</Nullable>
 	</PropertyGroup>
 
+	<Target Name="CleanGppgFiles" AfterTargets="Clean">
+		<Delete Files="$(ProjectDir)Stats\File\Stat.lex.cs;$(ProjectDir)Stats\File\Stat.yy.cs;$(ProjectDir)Stats\Functor\Functor.lex.cs;$(ProjectDir)Stats\Functor\Functor.yy.cs;$(ProjectDir)Stats\Functor\Lua.lex.cs;$(ProjectDir)Stats\Functor\Lua.yy.cs;$(ProjectDir)Stats\Functor\Requirement.lex.cs;$(ProjectDir)Stats\Functor\Requirement.yy.cs;$(ProjectDir)Stats\Functor\RollConditions.lex.cs;$(ProjectDir)Stats\Functor\RollConditions.yy.cs" ContinueOnError="true" TreatErrorsAsWarnings="true" />
+	</Target>
+
 	<Target Name="PreBuildGppgFiles" BeforeTargets="PreBuildEvent">
 		<ItemGroup>
 			<GpLex Include="..\external\gppg\binaries\GpLex" />
