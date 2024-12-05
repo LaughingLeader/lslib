@@ -55,19 +55,25 @@
         <PackageReference Include="ZstdSharp.Port" Version="0.8.3" />
     </ItemGroup>
 
-    <Target Name="CleanGppgFiles" AfterTargets="Clean">
-        <Delete Files="$(ProjectDir)\LS\Story\GoalParser\Goal.lex.cs;$(ProjectDir)\LS\Story\GoalParser\Goal.yy.cs;$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.lex.cs;$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.yy.cs" ContinueOnError="true" TreatErrorsAsWarnings="true" />
+    <PropertyGroup>
+        <GoalParser>$(MSBuildProjectDirectory)\LS\Story\GoalParser</GoalParser>
+        <HeaderParser>$(MSBuildProjectDirectory)\LS\Story\HeaderParser</HeaderParser>
+    </PropertyGroup>
+
+    <Target Name="CleanStoryGppgFiles" AfterTargets="Clean">
+        <Delete Files="$(GoalParser)\Goal.lex.cs;$(GoalParser)\Goal.yy.cs;$(HeaderParser)\StoryHeader.lex.cs;$(HeaderParser)\StoryHeader.yy.cs" ContinueOnError="true" TreatErrorsAsWarnings="true" />
     </Target>
 
-    <Target Name="PreBuildGppgFiles" BeforeTargets="PreBuildEvent">
+    <Target Name="PreBuildStoryGppgFiles" BeforeTargets="PreBuildEvent" Condition="!Exists('$(GoalParser)\Goal.lex.cs') Or !Exists('$(GoalParser)\Goal.yy.cs') Or !Exists('$(HeaderParser)\StoryHeader.lex.cs') Or !Exists('$(HeaderParser)\StoryHeader.yy.cs')">
         <ItemGroup>
             <GpLex Include="..\external\gppg\binaries\GpLex" />
             <Gppg Include="..\external\gppg\binaries\Gppg" />
         </ItemGroup>
 
-        <Exec Condition="!Exists('$(ProjectDir)\LS\Story\GoalParser\Goal.lex.cs')" Command="@(GpLex) /out:&quot;$(ProjectDir)\LS\Story\GoalParser\Goal.lex.cs&quot; &quot;$(ProjectDir)\LS\Story\GoalParser\Goal.lex&quot;" />
-        <Exec Condition="!Exists('$(ProjectDir)\LS\Story\GoalParser\Goal.yy.cs')" Command="@(Gppg) /out:&quot;$(ProjectDir)\LS\Story\GoalParser\Goal.yy.cs&quot; &quot;$(ProjectDir)\LS\Story\GoalParser\Goal.yy&quot;" />
-        <Exec Condition="!Exists('$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.lex.cs')" Command="@(GpLex) /out:&quot;$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.lex.cs&quot; &quot;$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.lex&quot;" />
-        <Exec Condition="!Exists('$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.yy.cs')" Command="@(Gppg) /out:&quot;$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.yy.cs&quot; &quot;$(ProjectDir)\LS\Story\HeaderParser\StoryHeader.yy&quot;" />
+        <Exec Command="@(GpLex) /out:&quot;$(GoalParser)\Goal.lex.cs&quot; &quot;$(GoalParser)\Goal.lex&quot;" />
+        <Exec Command="@(Gppg) /out:&quot;$(GoalParser)\Goal.yy.cs&quot; &quot;$(GoalParser)\Goal.yy&quot;" />
+        
+        <Exec Command="@(GpLex) /out:&quot;$(HeaderParser)\StoryHeader.lex.cs&quot; &quot;$(HeaderParser)\StoryHeader.lex&quot;" />
+        <Exec Command="@(Gppg) /out:&quot;$(HeaderParser)\StoryHeader.yy.cs&quot; &quot;$(HeaderParser)\StoryHeader.yy&quot;" />
     </Target>
 </Project>
