@@ -14,7 +14,16 @@
 		<Delete Files="$(StatsFile)\Stat.lex.cs;$(StatsFile)\Stat.yy.cs;$(StatsFunctor)\Functor.lex.cs;$(StatsFunctor)\Functor.yy.cs;$(StatsFunctor)\Lua.lex.cs;$(StatsFunctor)\Lua.yy.cs;$(StatsFunctor)\Requirement.lex.cs;$(StatsFunctor)\Requirement.yy.cs;$(StatsFunctor)\RollConditions.lex.cs;$(StatsFunctor)\RollConditions.yy.cs" ContinueOnError="true" TreatErrorsAsWarnings="true" />
 	</Target>
 
-	<Target Name="PreBuildStatsGppgFiles" BeforeTargets="PreBuildEvent" Condition="!Exists('$(StatsFile)\Stat.lex.cs') Or !Exists('$(StatsFile)\Stat.yy.cs') Or !Exists('$(StatsFunctor)\Functor.lex.cs') Or !Exists('$(StatsFunctor)\Functor.yy.cs') Or !Exists('$(StatsFunctor)\Lua.lex.cs') Or !Exists('$(StatsFunctor)\Lua.yy.cs') Or !Exists('$(StatsFunctor)\Requirement.lex.cs') Or !Exists('$(StatsFunctor)\Requirement.yy.cs') Or !Exists('$(StatsFunctor)\RollConditions.lex.cs') Or !Exists('$(StatsFunctor)\RollConditions.yy.cs')">
+	<Target Name="PreBuildStatsGppgFiles" BeforeTargets="PreBuildEvent" Condition="!Exists('$(StatsFile)\Stat.lex.cs')
+			Or !Exists('$(StatsFile)\Stat.yy.cs')
+			Or !Exists('$(StatsFunctor)\Functor.lex.cs')
+			Or !Exists('$(StatsFunctor)\Functor.yy.cs')
+			Or !Exists('$(StatsFunctor)\Lua.lex.cs')
+			Or !Exists('$(StatsFunctor)\Lua.yy.cs')
+			Or !Exists('$(StatsFunctor)\Requirement.lex.cs')
+			Or !Exists('$(StatsFunctor)\Requirement.yy.cs')
+			Or !Exists('$(StatsFunctor)\RollConditions.lex.cs')
+			Or !Exists('$(StatsFunctor)\RollConditions.yy.cs')">
 		<ItemGroup>
 			<GpLex Include="..\external\gppg\binaries\GpLex" />
 			<Gppg Include="..\external\gppg\binaries\Gppg" />
