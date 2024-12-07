@@ -187,11 +187,16 @@ public partial class StatDefinitionRepository
         }
     }
 
-    public void LoadLSLibDefinitionsEmbedded()
+    public bool LoadLSLibDefinitionsEmbedded()
     {
         var assembly = Assembly.GetExecutingAssembly();
-        using var stream = assembly.GetManifestResourceStream("LSLibDefinitions.xml");
-        LoadLSLibDefinitions(stream);
+        using var stream = assembly.GetManifestResourceStream("LSLibStats.LSLibDefinitions.xml");
+        if(stream != null)
+        {
+            LoadLSLibDefinitions(stream);
+            return true;
+        }
+        return false;
     }
 
     public void LoadDefinitions(Stream stream)
