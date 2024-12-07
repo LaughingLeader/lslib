@@ -36,4 +36,8 @@
 	<ItemGroup>
 		<ProjectReference Include="..\LSLib\LSLib.csproj" />
 	</ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Include="..\LSLibDefinitions.xml" CopyToOutputDirectory="Never" />
+	</ItemGroup>
 </Project>

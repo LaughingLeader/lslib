@@ -1,5 +1,7 @@
 ﻿using LSLib.Stats.Functors;
 using System.IO;
+using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
@@ -183,6 +185,13 @@ public partial class StatDefinitionRepository
                 }
             }
         }
+    }
+
+    public void LoadLSLibDefinitionsEmbedded()
+    {
+        var assembly = Assembly.GetExecutingAssembly();
+        using var stream = assembly.GetManifestResourceStream("LSLibDefinitions.xml");
+        LoadLSLibDefinitions(stream);
     }
 
     public void LoadDefinitions(Stream stream)
