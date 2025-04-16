@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using LSLib.Granny;
 using LSLib.Granny.GR2;
 using LSLib.Granny.Model;
 using LSLib.LS.Enums;
@@ -27,23 +28,15 @@ internal class CommandLineGR2Processor
         {
             InputPath = CommandLineActions.SourcePath,
             OutputPath = CommandLineActions.DestinationPath,
-            InputFormat = Program.argv.InputFormat != null ? CommandLineArguments.GetModelFormatByString(Program.argv.InputFormat) : CommandLineArguments.GetModelFormatByPath(CommandLineActions.SourcePath),
-            OutputFormat = Program.argv.OutputFormat != null ? CommandLineArguments.GetModelFormatByString(Program.argv.OutputFormat) : CommandLineArguments.GetModelFormatByPath(CommandLineActions.DestinationPath),
-            ExportNormals = GR2Options["export-normals"],
-            ExportTangents = GR2Options["export-tangents"],
-            ExportUVs = GR2Options["export-uvs"],
-            ExportColors = GR2Options["export-colors"],
+            InputFormat = Program.argv.InputFormat != null ? GR2Utils.FileExtensionToModelFormat("." + Program.argv.InputFormat) : GR2Utils.PathExtensionToModelFormat(CommandLineActions.SourcePath),
+            OutputFormat = Program.argv.OutputFormat != null ? GR2Utils.FileExtensionToModelFormat("." + Program.argv.OutputFormat) : GR2Utils.PathExtensionToModelFormat(CommandLineActions.DestinationPath),
             FlipUVs = GR2Options["flip-uvs"],
-            RecalculateNormals = GR2Options["recalculate-normals"],
-            RecalculateTangents = GR2Options["recalculate-tangents"],
-            RecalculateIWT = GR2Options["recalculate-iwt"],
             BuildDummySkeleton = GR2Options["build-dummy-skeleton"],
             CompactIndices = GR2Options["compact-tris"],
             DeduplicateVertices = GR2Options["deduplicate-vertices"],
-            DeduplicateUVs = GR2Options["deduplicate-uvs"],
             ApplyBasisTransforms = GR2Options["apply-basis-transforms"],
             UseObsoleteVersionTag = GR2Options["force-legacy-version"],
-            ConformGR2Path = GR2Options["conform"] && !string.IsNullOrEmpty(CommandLineActions.ConformPath) ? CommandLineActions.ConformPath : null,
+            ConformGR2Path = !string.IsNullOrEmpty(CommandLineActions.ConformPath) ? CommandLineActions.ConformPath : null,
             FlipSkeleton = GR2Options["x-flip-skeletons"],
             FlipMesh = GR2Options["x-flip-meshes"],
             TransformSkeletons = GR2Options["y-up-skeletons"],

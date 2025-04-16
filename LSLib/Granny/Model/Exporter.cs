@@ -11,7 +11,9 @@ public class ExportException(string message) : Exception(message)
 public enum ExportFormat
 {
     GR2,
-    DAE
+    DAE,
+    GLTF,
+    GLB
 };
 
 public enum DivinityModelInfoFormat
@@ -48,31 +50,14 @@ public class ExporterOptions
     // have to 1:1 match the GR2 structs for that version, as it won't just
     // memcpy the struct from the GR2 file directly.
     public UInt32 VersionTag = GR2.Header.DefaultTag;
-    // Export vertex normals to DAE/GR2 file
-    public bool ExportNormals = true;
-    // Export tangents/binormals to DAE/GR2 file
-    public bool ExportTangents = true;
-    // Export UV-s to DAE/GR2 file
-    public bool ExportUVs = true;
-    // Export vertex colors to DAE/GR2 file
-    public bool ExportColors = true;
     // Flip the V coord of UV-s (GR2 stores them in flipped format)
     public bool FlipUVs = true;
-    // Recalculate normals, even if they're available in the source mesh
-    // (They'll be recalculated automatically if unavailable)
-    public bool RecalculateNormals = false;
-    // Recalculate tangents/binormals, even if they're available in the source mesh
-    // (They'll be recalculated automatically if unavailable)
-    public bool RecalculateTangents = false;
-    // Recalculate bone inverse world transforms
-    public bool RecalculateIWT = false;
     // Create a dummy skeleton if none exists in the mesh
     // Some games will crash if they encounter a mesh without a skeleton
     public bool BuildDummySkeleton = false;
     // Save 16-bit vertex indices, if possible
     public bool CompactIndices = true;
     public bool DeduplicateVertices = true; // TODO: Add Collada conforming vert. handling as well
-    public bool DeduplicateUVs = true; // TODO: UNHANDLED
     public bool ApplyBasisTransforms = true;
     // Use an obsolete version tag to prevent Granny from memory mapping the structs
     public bool UseObsoleteVersionTag = false;
@@ -82,13 +67,10 @@ public class ExporterOptions
     public bool ConformAnimations = true;
     public bool ConformMeshBoneBindings = true;
     public bool ConformModels = true;
-    public Dictionary<string, VertexDescriptor> VertexFormats = [];
     // Extended model info format to use when exporting to D:OS
     public DivinityModelInfoFormat ModelInfoFormat = DivinityModelInfoFormat.None;
     // Model flags to use when exporting
     public DivinityModelFlag ModelType = 0;
-    // Remove unused metadata from the GR2 file
-    public bool StripMetadata = true;
     // Flip mesh on X axis
     public bool FlipMesh = false;
     // Flip skeleton on X axis
@@ -176,6 +158,15 @@ public class Exporter
         return importer.Import(inPath);
     }
 
+    private Root LoadGLTF(string inPath)
+    {
+        var importer = new GLTFImporter
+        {
+            Options = Options
+        };
+        return importer.Import(inPath);
+    }
+
     private Root Load(string inPath, ExportFormat format)
     {
         switch (format)
@@ -185,6 +176,10 @@ public class Exporter
 
             case ExportFormat.DAE:
                 return LoadDAE(inPath);
+
+            case ExportFormat.GLTF:
+            case ExportFormat.GLB:
+                return LoadGLTF(inPath);
 
             default:
                 throw new NotImplementedException("Unsupported input format");
@@ -225,6 +220,15 @@ public class Exporter
         exporter.Export(root, options.OutputPath);
     }
 
+    private void SaveGLTF(Root root, ExporterOptions options)
+    {
+        var exporter = new GLTFExporter
+        {
+            Options = options
+        };
+        exporter.Export(root, options.OutputPath);
+    }
+
     private void Save(Root root, ExporterOptions options)
     {
         switch (options.OutputFormat)
@@ -236,6 +240,11 @@ public class Exporter
 
             case ExportFormat.DAE:
                 SaveDAE(root, options);
+                break;
+
+            case ExportFormat.GLTF:
+            case ExportFormat.GLB:
+                SaveGLTF(root, options);
                 break;
 
             default:
@@ -732,14 +741,6 @@ public class Exporter
         if (Options.ApplyBasisTransforms)
         {
             Root.ConvertToYUp(Options.TransformSkeletons);
-        }
-
-        if (Options.RecalculateIWT && Root.Skeletons != null)
-        {
-            foreach (var skeleton in Root.Skeletons)
-            {
-                skeleton.UpdateWorldTransforms();
-            }
         }
 
         // TODO: DeduplicateUVs

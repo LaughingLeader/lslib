@@ -62,7 +62,7 @@ public class CommandLineArguments
     [EnumeratedValueArgument(typeof(string), 'i', "input-format",
         Description = "Set input format for batch operations",
         DefaultValue = null,
-        AllowedValues = "dae;gr2;lsv;pak;lsj;lsx;lsb;lsf",
+        AllowedValues = "dae;glb;gltf;gr2;lsv;pak;lsj;lsx;lsb;lsf",
         ValueOptional = false,
         Optional = true
     )]
@@ -72,7 +72,7 @@ public class CommandLineArguments
     [EnumeratedValueArgument(typeof(string), 'o', "output-format",
         Description = "Set output format for batch operations",
         DefaultValue = null,
-        AllowedValues = "dae;gr2;lsv;pak;lsj;lsx;lsb;lsf",
+        AllowedValues = "dae;glb;gltf;gr2;lsv;pak;lsj;lsx;lsb;lsf",
         ValueOptional = false,
         Optional = true
     )]
@@ -236,36 +236,6 @@ public class CommandLineArguments
         }
     }
 
-    public static ExportFormat GetModelFormatByString(string format)
-    {
-        switch (format.ToLower())
-        {
-            case "gr2":
-            {
-                return ExportFormat.GR2;
-            }
-            case "dae":
-            {
-                return ExportFormat.DAE;
-            }
-            default:
-            {
-                throw new ArgumentException($"Unknown model format: {format}");
-            }
-        }
-    }
-
-    public static ExportFormat GetModelFormatByPath(string path)
-    {
-        string extension = Path.GetExtension(path);
-        if (extension != null)
-        {
-            return GetModelFormatByString(extension.Substring(1));
-        }
-
-        throw new ArgumentException($"Could not determine model format from filename: {path}");
-    }
-
     // ReSharper disable once RedundantCaseLabel
     public static ResourceFormat GetResourceFormatByString(string resourceFormat)
     {
@@ -359,15 +329,7 @@ public class CommandLineArguments
     {
         var results = new Dictionary<string, bool>
         {
-            { "export-normals", true },
-            { "export-tangents", true },
-            { "export-uvs", true },
-            { "export-colors", true },
             { "deduplicate-vertices", true },
-            { "deduplicate-uvs", true },
-            { "recalculate-normals", false },
-            { "recalculate-tangents", false },
-            { "recalculate-iwt", false },
             { "flip-uvs", true },
             { "ignore-uv-nan", true },
             { "disable-qtangents", false },
@@ -379,7 +341,17 @@ public class CommandLineArguments
             { "x-flip-skeletons", false },
             { "x-flip-meshes", false },
             { "conform", false },
-            { "conform-copy", false }
+            { "conform-copy", false },
+            
+            // Deprecated options, no longer in use
+            { "export-normals", true },
+            { "export-tangents", true },
+            { "export-uvs", true },
+            { "export-colors", true },
+            { "recalculate-normals", false },
+            { "recalculate-tangents", false },
+            { "recalculate-iwt", false },
+            { "deduplicate-uvs", true }
         };
 
         if (options == null)
