@@ -74,11 +74,11 @@ public class VFS : IDisposable
 
     private bool _isDisposed;
 
-    private static readonly EnumerationOptions _gameDataFolderOptions = new() 
+    private static readonly EnumerationOptions _localizationDirEnumerationOptions = new() 
     { 
         RecurseSubdirectories = true, 
         IgnoreInaccessible = true,
-        MaxRecursionDepth = 1,
+        MaxRecursionDepth = 3,
         MatchCasing = MatchCasing.CaseInsensitive
     };
 
@@ -184,11 +184,11 @@ public class VFS : IDisposable
     public void AttachGameDirectory(string gameDataPath, bool excludeAssets = true, EnumerationOptions opts = null, HashSet<string> packageBlacklist = null)
     {
         AttachRoot(gameDataPath);
-        //Recurse subdirectories in the Data folder, to load Localization folder paks
-        opts ??= _gameDataFolderOptions;
         // Ignore common Data folder paks, if a list isn't specified
         packageBlacklist ??= excludeAssets ? PackageBlacklistBG3 : [];
-        AttachDirectory(gameDataPath, opts, packageBlacklist);
+        //The game only loads paks from the root Data folder, and the Data/Localization folder
+        AttachDirectory(gameDataPath, opts ?? _flatEnumerationOptions, packageBlacklist);
+        AttachDirectory(Path.Join(gameDataPath, "Localization"), opts ?? _localizationDirEnumerationOptions, packageBlacklist);
     }
 
     public void AttachPackage(string path)
