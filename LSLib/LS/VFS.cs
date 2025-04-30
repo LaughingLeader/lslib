@@ -202,9 +202,12 @@ public class VFS : IDisposable
     {
         foreach (var package in Packages)
         {
-            foreach (var file in package.Files)
+            if(package != null && package.Files != null)
             {
-                TryAddFile(file);
+                foreach (var file in package.Files)
+                {
+                    TryAddFile(file);
+                }
             }
         }
     }
