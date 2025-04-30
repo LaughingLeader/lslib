@@ -195,7 +195,7 @@ public class VFS : IDisposable
     {
         var reader = new PackageReader();
         var package = reader.Read(path);
-        Packages.Add(package);
+        if (package != null) Packages.Add(package);
     }
 
     public void FinishBuild()
