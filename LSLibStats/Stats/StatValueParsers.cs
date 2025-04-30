@@ -214,10 +214,10 @@ public class StringValidator : StatStringValidator
 {
     public override void Validate(DiagnosticContext ctx, string value, PropertyDiagnosticContainer errors)
     {
-        if (value.Length > 2047)
+        if (value.Length > 2048)
         {
-            // FixedString constructors crash over 2047 chars as there is no pool for that string size
-            errors.Add("Value cannot be longer than 2047 characters");
+            // FixedString constructors crash over 2048 chars as there is no pool for that string size
+            errors.Add("Value cannot be longer than 2048 characters");
         }
     }
 }
@@ -296,6 +296,14 @@ public class ExpressionValidator(String validatorType, StatDefinitionRepository 
 {
     public override void Validate(DiagnosticContext ctx, string value, PropertyDiagnosticContainer errors)
     {
+        if ((type == ExpressionType.Boost || type == ExpressionType.DescriptionParams) && value.Length > 2048)
+        {
+            errors.Add("Value cannot be longer than 2048 characters");
+        }
+        else if (type == ExpressionType.Functor && value.Length > 4096)
+        {
+            errors.Add("Value cannot be longer than 4096 characters");
+        }
         var typeLen = 10 + validatorType.Length;
         var valueBytes = Encoding.UTF8.GetBytes("__TYPE_" + validatorType + "__ " + value.TrimEnd());
         using var buf = new MemoryStream(valueBytes);
