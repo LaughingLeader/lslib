@@ -151,17 +151,6 @@ public class VFS : IDisposable
         return false;
     }
 
-    private void ProcessPartition(IEnumerator<string> partition)
-    {
-        using (partition)
-        {
-            while (partition.MoveNext())
-            {
-                AttachPackage(partition.Current);
-            }
-        }
-    }
-
     public void AttachDirectory(string directoryPath, EnumerationOptions opts = null, HashSet<string> packageBlacklist = null)
     {
         if (Directory.Exists(directoryPath))
@@ -174,10 +163,10 @@ public class VFS : IDisposable
             opts ??= _flatEnumerationOptions;
 
             var files = Directory.GetFiles(directoryPath, "*.pak", opts).Where(x => CanProcessPak(x, packageBlacklist));
-            Partitioner.Create(files)
-                .GetPartitions(Environment.ProcessorCount)
-                .AsParallel()
-                .ForAll(ProcessPartition);
+            foreach (var file in files)
+            {
+                AttachPackage(file);
+            }
         }
     }
 
