@@ -95,7 +95,7 @@ public class VFS : IDisposable
         "Effects.pak",
         "Engine.pak",
         "EngineShaders.pak",
-        "Game.pak",
+        //"Game.pak", // Contains base mods as of patch 8
         "GamePlatform.pak",
         "Gustav_NavCloud.pak",
         "Gustav_Textures.pak",
