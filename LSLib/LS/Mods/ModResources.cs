@@ -268,7 +268,7 @@ public class GameDataContext
     public GameDataContext(string path, TargetGame game = TargetGame.BG3, bool excludeAssets = true, bool loadUnpackedFiles = true)
     {
         FS = new VFS();
-        FS.AttachGameDirectory(path, excludeAssets, loadUnpackedFiles);
+        FS.AttachGameDirectory(path, excludeAssets, null, null, loadUnpackedFiles);
         FS.FinishBuild();
 
         Resources = new ModResources();
