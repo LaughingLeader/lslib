@@ -170,9 +170,10 @@ public class VFS : IDisposable
         }
     }
 
-    public void AttachGameDirectory(string gameDataPath, bool excludeAssets = true, EnumerationOptions opts = null, HashSet<string> packageBlacklist = null)
+    public void AttachGameDirectory(string gameDataPath, bool excludeAssets = true, EnumerationOptions opts = null, 
+		HashSet<string> packageBlacklist = null, bool loadUnpackedFiles = true)
     {
-        AttachRoot(gameDataPath);
+        if(loadUnpackedFiles) AttachRoot(gameDataPath);
         // Ignore common Data folder paks, if a list isn't specified
         packageBlacklist ??= excludeAssets ? PackageBlacklistBG3 : [];
         //The game only loads paks from the root Data folder, and the Data/Localization folder

@@ -629,6 +629,27 @@ public class MorphTarget
     public Int32 DataIsDeltas;
 }
 
+public class InfluencingJoints
+{
+    public List<int> BindJoints;
+    public List<int> SkeletonJoints;
+    public int[] BindRemaps;
+
+    public static int[] BindJointsToRemaps(List<int> joints)
+    {
+        var maxJoint = joints.Max();
+        var remaps = new int[maxJoint + 1];
+        var i = 0;
+
+        foreach (var joint in joints)
+        {
+            remaps[joint] = i++;
+        }
+
+        return remaps;
+    }
+}
+
 public class Mesh
 {
     public string Name;
@@ -659,7 +680,10 @@ public class Mesh
             VertexFormat = PrimaryVertexData.Vertices[0].Format;
         }
 
-        if (ExtendedData != null && ExtendedData.UserMeshProperties.MeshFlags == 0)
+        if (ExtendedData != null
+            && ExtendedData.UserMeshProperties != null
+            && ExtendedData.UserMeshProperties.Flags[0] == 0
+            && ExtendedData.UserMeshProperties.NewlyAdded)
         {
             ExtendedData.UserMeshProperties.MeshFlags = AutodetectMeshFlags();
         }
@@ -740,5 +764,59 @@ public class Mesh
         }
 
         return hasWeights && hasIndices;
+    }
+
+    public InfluencingJoints GetInfluencingJoints(Skeleton skeleton)
+    {
+        HashSet<int> joints = [];
+
+        foreach (var vert in PrimaryVertexData.Vertices)
+        {
+            if (vert.BoneWeights.A > 0) joints.Add(vert.BoneIndices.A);
+            if (vert.BoneWeights.B > 0) joints.Add(vert.BoneIndices.B);
+            if (vert.BoneWeights.C > 0) joints.Add(vert.BoneIndices.C);
+            if (vert.BoneWeights.D > 0) joints.Add(vert.BoneIndices.D);
+        }
+
+        var ij = new InfluencingJoints();
+        ij.BindJoints = joints.Order().ToList();
+        ij.SkeletonJoints = [];
+        foreach (var bindIndex in ij.BindJoints)
+        {
+            var binding = BoneBindings[bindIndex].BoneName;
+            var jointIndex = skeleton.Bones.FindIndex((bone) => bone.Name == binding);
+            if (jointIndex == -1)
+            {
+                throw new ParsingException($"Couldn't find bind bone {binding} in parent skeleton.");
+            }
+
+            ij.SkeletonJoints.Add(jointIndex);
+        }
+
+        ij.BindRemaps = InfluencingJoints.BindJointsToRemaps(ij.BindJoints);
+        return ij;
+    }
+
+    public Tuple<Vector3, Vector3> CalculateOBB()
+    {
+        if (PrimaryVertexData.Vertices.Count == 0)
+        {
+            throw new ParsingException("Cannot calculate OBB for mesh with no vertices!");
+        }
+        
+        var min = new Vector3(9999999.0f, 9999999.0f, 9999999.0f);
+        var max = new Vector3(-9999999.0f, -9999999.0f, -9999999.0f);
+
+        foreach (var vert in PrimaryVertexData.Vertices)
+        {
+            min.X = Math.Min(vert.Position.X, min.X);
+            max.X = Math.Max(vert.Position.X, max.X);
+            min.Y = Math.Min(vert.Position.Y, min.Y);
+            max.Y = Math.Max(vert.Position.Y, max.Y);
+            min.Z = Math.Min(vert.Position.Z, min.Z);
+            max.Z = Math.Max(vert.Position.Z, max.Z);
+        }
+
+        return new Tuple<Vector3, Vector3>(min, max);
     }
 }

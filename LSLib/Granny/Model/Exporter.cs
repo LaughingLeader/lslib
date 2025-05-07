@@ -1,6 +1,7 @@
 ﻿using LSLib.Granny.GR2;
 using LSLib.LS;
 using LSLib.LS.Enums;
+using OpenTK.Mathematics;
 
 namespace LSLib.Granny.Model;
 
@@ -83,7 +84,7 @@ public class ExporterOptions
     // Disabled by default, as D:OS doesn't support sparse knot values in anim curves.
     public bool RemoveTrivialAnimationKeys = false;
     // Recalculate mesh bone binding OBBs
-    public bool RecalculateOBBs = false;
+    public bool RecalculateOBBs = true;
     // Allow encoding tangents/binormals as QTangents
     // See: Spherical Skinning with Dual-Quaternions and QTangents, Crytek R&D
     public bool EnableQTangents = true;
@@ -259,7 +260,7 @@ public class Exporter
             if (model.Skeleton == null)
             {
                 Utils.Info($"Generating dummy skeleton for model '{model.Name}'");
-                var bone = new Bone
+                var rootBone = new Bone
                 {
                     Name = model.Name,
                     ParentIndex = -1,
@@ -271,13 +272,9 @@ public class Exporter
                     Name = model.Name,
                     LODType = 1,
                     IsDummy = true,
-                    Bones = [bone]
+                    Bones = [rootBone]
                 };
                 root.Skeletons.Add(skeleton);
-
-                // TODO: Transform / IWT is not always identity on dummy bones!
-                skeleton.UpdateWorldTransforms();
-                model.Skeleton = skeleton;
 
                 foreach (var mesh in model.MeshBindings)
                 {
@@ -286,17 +283,29 @@ public class Exporter
                         throw new ParsingException("Failed to generate dummy skeleton: Mesh already has bone bindings.");
                     }
 
+                    var bone = new Bone
+                    {
+                        Name = mesh.Mesh.Name,
+                        ParentIndex = 0,
+                        Transform = new Transform()
+                    };
+                    skeleton.Bones.Add(bone);
+                    (Vector3 min, Vector3 max) = mesh.Mesh.CalculateOBB();
+
                     var binding = new BoneBinding
                     {
                         BoneName = bone.Name,
-                        // TODO: Calculate bounding box!
-                        // Use small bounding box values, as it interferes with object placement
-                        // in D:OS 2 (after the Gift Bag 2 update)
-                        OBBMin = [-0.1f, -0.1f, -0.1f],
-                        OBBMax = [0.1f, 0.1f, 0.1f]
+                        // TODO: Use oriented bounding box instead of AABB
+                        // (AABB should be fine here, as there are no transforms on the bones)
+                        OBBMin = [min.X, min.Y, min.Z],
+                        OBBMax = [max.X, max.Y, max.Z]
                     };
                     mesh.Mesh.BoneBindings = [binding];
                 }
+
+                // TODO: Transform / IWT is not always identity on dummy bones!
+                skeleton.UpdateWorldTransforms();
+                model.Skeleton = skeleton;
             }
         }
     }
@@ -696,6 +705,30 @@ public class Exporter
         }
     }
 
+
+    private void UpdateSkeletonLODType(Skeleton skeleton)
+    {
+        bool hasSkinnedVerts = false;
+
+        foreach (var mesh in Root.Meshes ?? [])
+        {
+            if (mesh.IsSkinned())
+            {
+                hasSkinnedVerts = true;
+            }
+        }
+
+        foreach (var track in Root.TrackGroups ?? [])
+        {
+            if (track.TransformTracks.Count > 0)
+            {
+                hasSkinnedVerts = true;
+            }
+        }
+
+        skeleton.LODType = hasSkinnedVerts ? 1 : 0;
+    }
+
     public void Export()
     {
         if (Options.InputPath != null)
@@ -765,6 +798,11 @@ public class Exporter
         if (Options.FlipMesh || Options.FlipSkeleton)
         {
             Root.Flip(Options.FlipMesh, Options.FlipSkeleton);
+        }
+
+        foreach (var skeleton in Root.Skeletons ?? [])
+        {
+            UpdateSkeletonLODType(skeleton);
         }
 
         // This option should be handled after everything else, as it converts Indices

@@ -5,7 +5,6 @@ using System.Numerics;
 using SharpGLTF.Scenes;
 using LSLib.LS;
 using SharpGLTF.Schema2;
-using SharpGLTF.Animations;
 
 namespace LSLib.Granny.Model;
 
@@ -50,17 +49,29 @@ public class GLTFExporter
     private void ExportMeshBinding(Model model, Skeleton skeleton, MeshBinding meshBinding, SceneBuilder scene)
     {
         var meshId = MeshIds[meshBinding.Mesh];
-        var exporter = new GLTFMeshExporter(meshBinding.Mesh, meshId);
-        var mesh = exporter.Export();
 
-        if (skeleton == null || !meshBinding.Mesh.VertexFormat.HasBoneWeights)
+        if (skeleton != null && meshBinding.Mesh.VertexFormat.HasBoneWeights)
         {
-            scene.AddRigidMesh(mesh, new AffineTransform(Matrix4x4.Identity));
+            var joints = meshBinding.Mesh.GetInfluencingJoints(skeleton);
+
+            var exporter = new GLTFMeshExporter(meshBinding.Mesh, meshId, joints.BindRemaps);
+            var mesh = exporter.Export();
+
+            Skeletons[skeleton].UsedForSkinning = true;
+
+            List<(NodeBuilder, Matrix4x4)> bindings = [];
+            foreach (var jointIndex in joints.SkeletonJoints)
+            {
+                bindings.Add(Skeletons[skeleton].Joints[jointIndex]);
+            }
+
+            scene.AddSkinnedMesh(mesh, bindings.ToArray());
         }
         else
         {
-            Skeletons[skeleton].UsedForSkinning = true;
-            scene.AddSkinnedMesh(mesh, Skeletons[skeleton].Joints.ToArray());
+            var exporter = new GLTFMeshExporter(meshBinding.Mesh, meshId, null);
+            var mesh = exporter.Export();
+            scene.AddRigidMesh(mesh, new AffineTransform(Matrix4x4.Identity));
         }
     }
 
@@ -109,9 +120,28 @@ public class GLTFExporter
         ext.LSLibMinor = Common.MinorVersion;
         ext.LSLibPatch = Common.PatchVersion;
 
+        foreach (var model in root.Models ?? [])
+        {
+            if (model.Name != "")
+            {
+                ext.ModelName = model.Name;
+            }
+        }
+
+        if (ext.ModelName == "")
+        {
+            foreach (var skeleton in root.Skeletons ?? [])
+            {
+                if (skeleton.Name != "")
+                {
+                    ext.ModelName = skeleton.Name;
+                }
+            }
+        }
+
         foreach (var group in root.TrackGroups ?? [])
         {
-            if (group.ExtendedData != null)
+            if (group.ExtendedData != null && group.ExtendedData.SkeletonResourceID != "")
             {
                 ext.SkeletonResourceID = group.ExtendedData.SkeletonResourceID;
             }
@@ -145,6 +175,10 @@ public class GLTFExporter
         ext.ExportOrder = mesh.ExportOrder;
         ext.LOD = (user.Lod[0] >= 0) ? user.Lod[0] : 0;
         ext.LODDistance = (user.LodDistance[0] < 100000000.0f) ? user.LodDistance[0] : 0.0f;
+        if (!mesh.IsSkinned() && mesh.BoneBindings != null && mesh.BoneBindings.Count == 1)
+        {
+            ext.ParentBone = mesh.BoneBindings[0].BoneName;
+        }
     }
 
     private void ExportExtensions(Root root, ModelRoot modelRoot)
