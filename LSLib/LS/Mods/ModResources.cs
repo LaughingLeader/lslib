@@ -160,7 +160,7 @@ public partial class ModPathVisitor
         var globalsPath = Path.Join(mod.ModsPath, "Globals");
         if (!FS.DirectoryExists(globalsPath)) return;
 
-        var globalFiles = FS.EnumerateFiles(globalsPath, false, p => Path.GetExtension(p) == ".lsf");
+        var globalFiles = FS.EnumerateFiles(globalsPath, true, p => Path.GetExtension(p) == ".lsf");
 
         foreach (var globalFile in globalFiles)
         {
@@ -173,7 +173,7 @@ public partial class ModPathVisitor
         var levelsPath = Path.Join(mod.ModsPath, "Levels");
         if (!FS.DirectoryExists(levelsPath)) return;
 
-        var levelFiles = FS.EnumerateFiles(levelsPath, false, p => Path.GetExtension(p) == ".lsf");
+        var levelFiles = FS.EnumerateFiles(levelsPath, true, p => Path.GetExtension(p) == ".lsf");
 
         foreach (var levelFile in levelFiles)
         {
