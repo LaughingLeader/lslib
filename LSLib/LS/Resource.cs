@@ -171,6 +171,33 @@ public class Resource
     {
         Metadata.MajorVersion = 3;
     }
+
+    public static Resource CreateSingleResource(Resource otherRes, Node targetNode)
+    {
+        var res = new Resource()
+        {
+            Metadata = otherRes.Metadata,
+            MetadataFormat = otherRes.MetadataFormat,
+        };
+        var kvpFirstRegion = otherRes.Regions.FirstOrDefault();
+        var region = new Region()
+        {
+            RegionName = kvpFirstRegion.Value.RegionName,
+            Name = kvpFirstRegion.Value.RegionName
+        };
+        var nodeCopy = new Node()
+        {
+            Name = targetNode.Name,
+            Attributes = new Dictionary<string, NodeAttribute>(targetNode.Attributes),
+            Children = new Dictionary<string, List<Node>>(targetNode.Children),
+            Line = targetNode.Line,
+            KeyAttribute = targetNode.KeyAttribute,
+            Parent = region
+        };
+        region.AppendChild(nodeCopy);
+        res.Regions.Add(kvpFirstRegion.Key, region);
+        return res;
+    }
 }
 
 public class Region : Node
