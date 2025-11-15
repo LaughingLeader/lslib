@@ -53,22 +53,30 @@ public class LZ4DecompressionStream : Stream
 
     public override long Seek(long offset, SeekOrigin origin)
     {
-        throw new NotSupportedException();
+        if (Decompressed == null) DoDecompression();
+
+        return Decompressed.Seek(offset, origin);
     }
 
 
     public override long Position
     {
         get { return Decompressed?.Position ?? 0; }
-        set { throw new NotSupportedException(); }
+        set
+        {
+            if(Decompressed != null)
+            {
+                Decompressed.Position = value;
+            }
+        }
     }
 
     public override bool CanTimeout { get { return false; } }
     public override bool CanWrite { get { return false; } }
     public override long Length { get { return DecompressedSize; } }
-    public override void SetLength(long value) { throw new NotSupportedException(); }
-    public override void Write(byte[] buffer, int offset, int count) { throw new NotSupportedException(); }
-    public override void Flush() { }
+    public override void SetLength(long value) => Decompressed?.SetLength(value);
+    public override void Write(byte[] buffer, int offset, int count) => Decompressed?.Write(buffer, offset, count);
+    public override void Flush() => Decompressed?.Flush();
 }
 
 public static class CompressionHelpers
