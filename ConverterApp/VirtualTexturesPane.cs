@@ -117,6 +117,7 @@ public partial class VirtualTexturesPane : UserControl
         {
             var descriptor = new TileSetDescriptor();
             descriptor.RootPath = modRootPath.Text;
+            descriptor.Config.FastBuild = fastBuild.Checked;
             descriptor.Load(tileSetConfigPath.Text);
 
             var builder = new TileSetBuilder(descriptor.Config);

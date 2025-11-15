@@ -29,6 +29,8 @@
         private void InitializeComponent()
         {
             groupBox1 = new System.Windows.Forms.GroupBox();
+            gTexNameInput = new System.Windows.Forms.TextBox();
+            label6 = new System.Windows.Forms.Label();
             extractTileSetBtn = new System.Windows.Forms.Button();
             destinationPathBrowseBtn = new System.Windows.Forms.Button();
             gtsBrowseBtn = new System.Windows.Forms.Button();
@@ -54,8 +56,7 @@
             label2 = new System.Windows.Forms.Label();
             modRootPathDlg = new System.Windows.Forms.FolderBrowserDialog();
             tileSetConfigDlg = new System.Windows.Forms.OpenFileDialog();
-            gTexNameInput = new System.Windows.Forms.TextBox();
-            label6 = new System.Windows.Forms.Label();
+            fastBuild = new System.Windows.Forms.CheckBox();
             groupBox1.SuspendLayout();
             groupBox2.SuspendLayout();
             SuspendLayout();
@@ -80,6 +81,25 @@
             groupBox1.TabIndex = 66;
             groupBox1.TabStop = false;
             groupBox1.Text = "Extract Virtual Textures";
+            // 
+            // gTexNameInput
+            // 
+            gTexNameInput.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            gTexNameInput.Location = new System.Drawing.Point(10, 194);
+            gTexNameInput.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            gTexNameInput.Name = "gTexNameInput";
+            gTexNameInput.Size = new System.Drawing.Size(1148, 27);
+            gTexNameInput.TabIndex = 63;
+            // 
+            // label6
+            // 
+            label6.AutoSize = true;
+            label6.Location = new System.Drawing.Point(6, 169);
+            label6.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            label6.Name = "label6";
+            label6.Size = new System.Drawing.Size(326, 20);
+            label6.TabIndex = 64;
+            label6.Text = "GTex Name: (leave empty to extract all textures)";
             // 
             // extractTileSetBtn
             // 
@@ -190,6 +210,7 @@
             // groupBox2
             // 
             groupBox2.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            groupBox2.Controls.Add(fastBuild);
             groupBox2.Controls.Add(modRootPathBrowseBtn);
             groupBox2.Controls.Add(tileSetBrowseBtn);
             groupBox2.Controls.Add(tileSetBuildBtn);
@@ -320,24 +341,15 @@
             // 
             tileSetConfigDlg.Filter = "Virtual Texture Set Configuration (.xml)|*.xml";
             // 
-            // gTexNameInput
+            // fastBuild
             // 
-            gTexNameInput.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
-            gTexNameInput.Location = new System.Drawing.Point(10, 194);
-            gTexNameInput.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
-            gTexNameInput.Name = "gTexNameInput";
-            gTexNameInput.Size = new System.Drawing.Size(1148, 27);
-            gTexNameInput.TabIndex = 63;
-            // 
-            // label6
-            // 
-            label6.AutoSize = true;
-            label6.Location = new System.Drawing.Point(6, 169);
-            label6.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            label6.Name = "label6";
-            label6.Size = new System.Drawing.Size(326, 20);
-            label6.TabIndex = 64;
-            label6.Text = "GTex Name: (leave empty to extract all textures)";
+            fastBuild.AutoSize = true;
+            fastBuild.Location = new System.Drawing.Point(843, 173);
+            fastBuild.Name = "fastBuild";
+            fastBuild.Size = new System.Drawing.Size(94, 24);
+            fastBuild.TabIndex = 65;
+            fastBuild.Text = "Fast Build";
+            fastBuild.UseVisualStyleBackColor = true;
             // 
             // VirtualTexturesPane
             // 
@@ -389,5 +401,6 @@
         private System.Windows.Forms.Button tileSetBuildBtn;
         private System.Windows.Forms.TextBox gTexNameInput;
         private System.Windows.Forms.Label label6;
+        private System.Windows.Forms.CheckBox fastBuild;
     }
 }

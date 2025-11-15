@@ -8,7 +8,7 @@ public class PageFile : IDisposable
     private readonly FileStream Stream;
     private readonly BinaryReader Reader;
     public GTPHeader Header;
-    private readonly List<UInt32[]> ChunkOffsets;
+    internal readonly List<UInt32[]> ChunkOffsets;
 
     public PageFile(VirtualTileSet tileset, string path)
     {

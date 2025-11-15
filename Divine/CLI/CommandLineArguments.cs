@@ -82,7 +82,7 @@ public class CommandLineArguments
     [EnumeratedValueArgument(typeof(string), 'a', "action",
         Description = "Set action to execute",
         DefaultValue = "extract-package",
-        AllowedValues = "create-package;list-package;extract-single-file;extract-package;extract-packages;convert-model;convert-models;convert-resource;convert-resources;convert-loca",
+        AllowedValues = "create-package;list-package;extract-single-file;extract-package;extract-packages;convert-model;convert-models;convert-resource;convert-resources;convert-loca;build-vt",
         ValueOptional = false,
         Optional = false
     )]
@@ -102,7 +102,7 @@ public class CommandLineArguments
     [EnumeratedValueArgument(typeof(string), 'e', "gr2-options",
         Description = "Set extra options for GR2/DAE conversion",
         AllowMultiple = true,
-        AllowedValues = "export-normals;export-tangents;export-uvs;export-colors;deduplicate-vertices;deduplicate-uvs;recalculate-normals;recalculate-tangents;recalculate-iwt;flip-uvs;ignore-uv-nan;disable-qtangents;y-up-skeletons;force-legacy-version;compact-tris;build-dummy-skeleton;apply-basis-transforms;x-flip-skeletons;x-flip-meshes;conform;conform-copy",
+        AllowedValues = "export-normals;export-tangents;export-uvs;export-colors;deduplicate-vertices;deduplicate-uvs;recalculate-normals;recalculate-tangents;recalculate-iwt;flip-uvs;ignore-uv-nan;disable-qtangents;y-up-skeletons;force-legacy-version;compact-tris;build-dummy-skeleton;apply-basis-transforms;mirror-skeletons;x-flip-meshes;conform;conform-copy",
         ValueOptional = false,
         Optional = true
     )]
@@ -143,18 +143,41 @@ public class CommandLineArguments
     public bool LegacyGuids;
 
     // @formatter:off
+    [SwitchArgument("fast-build", false,
+        Description = "Faster VT build, but lower compression ratio",
+        Optional = true
+    )]
+    public bool FastBuild;
+
+    // @formatter:off
+    [SwitchArgument("vt-validate", false,
+        Description = "Validate generated VT files",
+        Optional = true
+    )]
+    public bool VTValidate;
+
+    // @formatter:off
     [SwitchArgument("use-package-name", false,
         Description = "Use package name for destination folder",
         Optional = true
     )]
     public bool UsePackageName;
 
-		// @formatter:off
+	// @formatter:off
     [SwitchArgument("use-regex", false,
         Description = "Use Regular Expressions for expression type",
         Optional = true
     )]
     public bool UseRegex;
+
+    // @formatter:off
+    [ValueArgument(typeof(string), "vt-root",
+        Description = "Tileset build mod root path",
+        DefaultValue = null,
+        ValueOptional = false,
+        Optional = true
+    )]
+    public string VTRoot;
 
     // @formatter:on
     public static LogLevel GetLogLevelByString(string logLevel)
@@ -338,7 +361,7 @@ public class CommandLineArguments
             { "compact-tris", true },
             { "build-dummy-skeleton", true },
             { "apply-basis-transforms", true },
-            { "x-flip-skeletons", false },
+            { "mirror-skeletons", false },
             { "x-flip-meshes", false },
             { "conform", false },
             { "conform-copy", false },

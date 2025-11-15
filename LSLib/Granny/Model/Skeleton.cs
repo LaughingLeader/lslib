@@ -31,8 +31,8 @@ public class Bone
     public int ExportIndex = -1;
 
     public bool IsRoot { get { return ParentIndex == -1; } }
-    
-    public void UpdateWorldTransforms(List<Bone> bones)
+
+    public void UpdateWorldTransform(List<Bone> bones)
     {
         var localTransform = Transform.ToMatrix4Composite();
         if (IsRoot)
@@ -44,7 +44,11 @@ public class Bone
             var parentBone = bones[ParentIndex];
             WorldTransform = localTransform * parentBone.WorldTransform;
         }
+    }
 
+    // Should be avoided unless necessary, as float matrix inversion introduces precision errors to the IWT
+    public void UpdateInverseWorldTransform()
+    {
         var iwt = WorldTransform.Inverted();
         InverseWorldTransform = [
             iwt[0, 0], iwt[0, 1], iwt[0, 2], iwt[0, 3],
@@ -52,6 +56,12 @@ public class Bone
             iwt[2, 0], iwt[2, 1], iwt[2, 2], iwt[2, 3],
             iwt[3, 0], iwt[3, 1], iwt[3, 2], iwt[3, 3]
         ];
+    }
+
+    public void UpdateWorldTransforms(List<Bone> bones)
+    {
+        UpdateWorldTransform(bones);
+        UpdateInverseWorldTransform();
     }
 
     private void ImportLSLibProfile(node node)
@@ -166,6 +176,48 @@ public class Bone
             ]
         };
     }
+
+    private static bool MirrorBoneName(ref string name, string from, string to)
+    {
+        int pos = 0;
+        while (true)
+        {
+            pos = name.IndexOf(from, pos);
+            if (pos == -1)
+            {
+                return false;
+            }
+
+            if (pos + 2 == name.Length || name[pos+2] == '_')
+            {
+                name = name[..pos] + to + name.Substring(pos+2);
+                return true;
+            }
+
+            pos += 2;
+        }
+    }
+
+    public static string MirrorBoneName(string name)
+    {
+        string mirrored = name;
+        if (MirrorBoneName(ref mirrored, "_l", "_r")
+            || MirrorBoneName(ref mirrored, "_L", "_R")
+            || MirrorBoneName(ref mirrored, "_r", "_l")
+            || MirrorBoneName(ref mirrored, "_R", "_L"))
+        {
+            return mirrored;
+        }
+        else
+        {
+            return name;
+        }
+    }
+
+    public void Mirror()
+    {
+        Name = MirrorBoneName(Name);
+    }
 }
 
 public class Skeleton
@@ -230,14 +282,12 @@ public class Skeleton
         UpdateWorldTransforms();
     }
 
-    public void Flip()
+    public void Mirror()
     {
-        foreach (var bone in Bones) if (bone.IsRoot)
+        foreach (var bone in Bones)
         {
-           bone.Transform.SetScale(new Vector3(-1, 1, 1));
+            bone.Mirror();
         }
-
-        UpdateWorldTransforms();
     }
 
     public void UpdateWorldTransforms()

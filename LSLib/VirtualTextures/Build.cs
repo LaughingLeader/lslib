@@ -58,6 +58,8 @@ public class TileSetDescriptor
                     case "EmbedMips": Config.EmbedMips = Boolean.Parse(value); break;
                     case "EmbedTopLevelMips": Config.EmbedTopLevelMips = Boolean.Parse(value); break;
                     case "ZeroBorders": Config.ZeroBorders = Boolean.Parse(value); break;
+                    case "FastBuild": Config.FastBuild = Boolean.Parse(value); break;
+                    case "Validate": Config.Validate = Boolean.Parse(value); break;
                     default: throw new InvalidDataException($"Unsupported configuration key: {key}");
                 }
             }
@@ -173,6 +175,8 @@ public class TileSetConfiguration
     public bool EmbedMips = true;
     public bool EmbedTopLevelMips = true;
     public bool ZeroBorders = false;
+    public bool FastBuild = false;
+    public bool Validate = false;
 }
 
 public class BuildLayerTexture
@@ -979,7 +983,7 @@ public class TileSetBuilder
                 OnStepProgress(nextTile++, numTiles);
                 if (tile.DuplicateOf == null)
                 {
-                    Compressor.Compress(tile);
+                    Compressor.Compress(tile, Config.FastBuild);
                 }
             }
         }
@@ -1019,7 +1023,7 @@ public class TileSetBuilder
                             var packedTile = new GTSPackedTileID((uint)layer, (uint)level, (uint)x, (uint)y);
                             packedTileIds.Add(packedTile);
 
-                            var tileKey = (long)tile.ChunkIndex
+                            var tileKey = (long)tile.PageFileIndex
                                 | ((long)tile.PageIndex << 16)
                                 | ((long)tile.ChunkIndex << 32);
                             if (flatTileMap.TryGetValue(tileKey, out uint dupTileIdx))
@@ -1167,6 +1171,22 @@ public class TileSetBuilder
         {
             OnStepStarted($"Saving page file: {file.FileName}");
             file.Save(Path.Join(dir, file.FileName));
+        }
+
+        if (Config.Validate)
+        {
+            Validate(dir);
+        }
+    }
+
+    private void Validate(string dir)
+    {
+        var tileSet = new VirtualTileSet(Path.Join(dir, BuildData.GTSName + ".gts"));
+        tileSet.Validate();
+
+        if (!Config.DeduplicateTiles)
+        {
+            tileSet.ValidateUniqueMappings();
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿using LZ4;
+﻿using LSLib.LS;
 
 namespace LSLib.VirtualTextures;
 
@@ -44,17 +44,17 @@ public class TileCompressor
         }
     }
 
-    public static byte[] CompressLZ4(byte[] raw)
+    public static byte[] CompressLZ4(byte[] raw, bool fast)
     {
-        return LZ4Codec.EncodeHC(raw, 0, raw.Length);
+        return CompressionHelpers.CompressLZ4(raw, fast ? LSCompressionLevel.Fast : LSCompressionLevel.Max);
     }
 
-    public static byte[] CompressLZ77(byte[] raw)
+    public static byte[] CompressLZ77(byte[] raw, bool fast)
     {
-        return Native.FastLZCompressor.Compress(raw, 2);
+        return Native.FastLZCompressor.Compress(raw, fast ? 0 : 2);
     }
 
-    public byte[] Compress(byte[] uncompressed, out TileCompressionMethod method)
+    public byte[] Compress(byte[] uncompressed, bool fast, out TileCompressionMethod method)
     {
         switch (Preference)
         {
@@ -63,8 +63,8 @@ public class TileCompressor
                 return uncompressed;
 
             case TileCompressionPreference.Best:
-                var lz4 = CompressLZ4(uncompressed);
-                var lz77 = CompressLZ77(uncompressed);
+                var lz4 = CompressLZ4(uncompressed, fast);
+                var lz77 = CompressLZ77(uncompressed, fast);
                 if (lz4.Length <= lz77.Length)
                 {
                     method = TileCompressionMethod.LZ4;
@@ -78,18 +78,18 @@ public class TileCompressor
 
             case TileCompressionPreference.LZ4:
                 method = TileCompressionMethod.LZ4;
-                return CompressLZ4(uncompressed);
+                return CompressLZ4(uncompressed, fast);
 
             case TileCompressionPreference.LZ77:
                 method = TileCompressionMethod.LZ77;
-                return CompressLZ77(uncompressed);
+                return CompressLZ77(uncompressed, fast);
 
             default:
                 throw new ArgumentException("Invalid compression preference");
         }
     }
 
-    public CompressedTile Compress(BuildTile tile)
+    public CompressedTile Compress(BuildTile tile, bool fast)
     {
         if (tile.Compressed != null)
         {
@@ -98,7 +98,7 @@ public class TileCompressor
 
         var uncompressed = GetRawBytes(tile);
         var compressed = new CompressedTile();
-        compressed.Data = Compress(uncompressed, out compressed.Method);
+        compressed.Data = Compress(uncompressed, fast, out compressed.Method);
 
         var paramBlock = ParameterBlocks.GetOrAdd(tile.Codec, tile.DataType, compressed.Method);
         compressed.ParameterBlockID = paramBlock.ParameterBlockID;
@@ -139,9 +139,7 @@ public class TileCompressor
             case TileCompressionMethod.Raw:
                 return compressed;
             case TileCompressionMethod.LZ4:
-                var decompressed = new byte[outputSize];
-                LZ4Codec.Decode(compressed, 0, compressed.Length, decompressed, 0, outputSize, true);
-                return decompressed;
+                return CompressionHelpers.Decompress(compressed, outputSize, CompressionFlags.MethodLZ4);
             case TileCompressionMethod.LZ77:
                 return Native.FastLZCompressor.Decompress(compressed, outputSize);
             default:

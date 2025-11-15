@@ -1,6 +1,9 @@
-﻿using System;
-using LSLib.LS;
+﻿using LSLib.LS;
 using LSLib.LS.Enums;
+using LSLib.VirtualTextures;
+using System;
+using System.IO;
+using System.Linq;
 
 namespace Divine.CLI;
 
@@ -39,6 +42,40 @@ internal class CommandLineDataProcessor
         catch (Exception e)
         {
             CommandLineLogger.LogFatal($"Failed to convert resource: {e.Message}", 2);
+            CommandLineLogger.LogTrace($"{e.StackTrace}");
+        }
+    }
+
+    public static void BuildVirtualTextureSet()
+    {
+        try
+        {
+            var descriptor = new TileSetDescriptor();
+            descriptor.RootPath = CommandLineActions.VTRootPath;
+            descriptor.Config.FastBuild = CommandLineActions.FastBuild;
+            descriptor.Config.Validate = CommandLineActions.VTValidate;
+            descriptor.Load(CommandLineActions.VTConfigPath);
+
+            var builder = new TileSetBuilder(descriptor.Config);
+            foreach (var texture in descriptor.Textures)
+            {
+                var layerPaths = texture.Layers.Select(name => name != null ? Path.Combine(descriptor.SourceTexturePath, name) : null).ToList();
+                builder.AddTexture(texture.Name, layerPaths);
+            }
+
+            builder.Build(descriptor.VirtualTexturePath);
+        }
+        catch (InvalidDataException e)
+        {
+            CommandLineLogger.LogFatal($"Failed to build tileset: {e.Message}", 2);
+        }
+        catch (FileNotFoundException e)
+        {
+            CommandLineLogger.LogFatal($"Failed to build tileset: {e.Message}", 2);
+        }
+        catch (Exception e)
+        {
+            CommandLineLogger.LogFatal($"Failed to build tileset: {e.Message}", 2);
             CommandLineLogger.LogTrace($"{e.StackTrace}");
         }
     }

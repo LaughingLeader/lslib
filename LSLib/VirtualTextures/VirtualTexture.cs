@@ -1,5 +1,6 @@
 ﻿using LSLib.LS;
 using System.Diagnostics;
+using System.Reflection.Metadata.Ecma335;
 
 namespace LSLib.VirtualTextures;
 
@@ -664,5 +665,141 @@ public class VirtualTileSet : IDisposable
         }
 
         return ExtractTexture(levelIndex, layer, minX, minY, maxX, maxY);
+    }
+
+
+    public void Validate()
+    {
+        // Preload pagefiles
+        for (var i = 0; i < PageFileInfos.Count; i++)
+        {
+            GetOrLoadPageFile(i);
+        }
+
+        foreach (var (i,file) in PageFiles)
+        {
+            var info = PageFileInfos[i];
+
+            if (info.Meta.NumPages != file.ChunkOffsets.Count)
+            {
+                throw new InvalidDataException($"Page count mismatch in metadata: {info.Meta.FileName}");
+            }
+
+            if (info.Meta.Checksum != file.Header.GUID)
+            {
+                throw new InvalidDataException($"Checksum mismatch in metadata: {info.Meta.FileName}");
+            }
+        }
+
+        foreach (var tileId in PackedTileIDs)
+        {
+            if (tileId.Level >= TileSetLevels.Length)
+            {
+                throw new InvalidDataException($"Tile references nonexistent level {tileId.Level}");
+            }
+
+            if (tileId.Layer >= TileSetLayers.Length)
+            {
+                throw new InvalidDataException($"Tile references nonexistent layer {tileId.Layer}");
+            }
+
+            var level = TileSetLevels[tileId.Level];
+            if (tileId.X >= level.Width || tileId.Y >= level.Height)
+            {
+                throw new InvalidDataException($"Tile references nonexistent position {tileId.X},{tileId.Y}");
+            }
+        }
+
+        foreach (var tileInfo in FlatTileInfos)
+        {
+            if (tileInfo.PageFileIndex >= PageFileInfos.Count)
+            {
+                throw new InvalidDataException($"Flat tile references nonexistent pagefile {tileInfo.PageFileIndex}");
+            }
+
+            var file = PageFiles[tileInfo.PageFileIndex];
+            if (tileInfo.PageIndex >= file.ChunkOffsets.Count)
+            {
+                throw new InvalidDataException($"Flat tile references nonexistent page index {tileInfo.PageFileIndex}:{tileInfo.PageIndex}");
+            }
+
+            if (tileInfo.ChunkIndex >= file.ChunkOffsets[tileInfo.PageIndex].Length)
+            {
+                throw new InvalidDataException($"Flat tile references nonexistent chunk index {tileInfo.PageFileIndex}:{tileInfo.PageIndex}:{tileInfo.ChunkIndex}");
+            }
+
+            if (tileInfo.PackedTileIndex >= PackedTileIDs.Length)
+            {
+                throw new InvalidDataException($"Flat tile references nonexistent packed tile {tileInfo.PackedTileIndex}");
+            }
+        }
+
+        foreach (var levelInds in PerLevelFlatTileIndices)
+        {
+            foreach (var tileIndex in levelInds)
+            {
+                if ((tileIndex & 0x80000000) == 0)
+                {
+                    if (tileIndex >= FlatTileInfos.Length)
+                    {
+                        throw new InvalidDataException($"Level map references nonexistent flat tile {tileIndex}");
+                    }
+                }
+                else
+                {
+                    var downsampleIndex = tileIndex & ~0x80000000u;
+                    if (downsampleIndex >= FlatTileInfos.Length)
+                    {
+                        throw new InvalidDataException($"Level map references nonexistent downsampled flat tile {downsampleIndex}");
+                    }
+                }
+            }
+        }
+    }
+
+
+    public void ValidateUniqueMappings()
+    {
+        for (var level = 0; level < TileSetLevels.Length; level++)
+        {
+            var levelTileIndex = 0;
+            var l = TileSetLevels[level];
+            for (var y = 0; y < l.Height; y++)
+            {
+                for (var x = 0; x < l.Width; x++)
+                {
+                    for (var layer = 0; layer < TileSetLayers.Length; layer++)
+                    {
+                        var levelTile = PerLevelFlatTileIndices[level][levelTileIndex];
+                        if ((levelTile & 0x80000000) == 0)
+                        {
+                            var flatTile = FlatTileInfos[levelTile];
+                            var packedTileId = PackedTileIDs[flatTile.PackedTileIndex];
+
+                            if (level != packedTileId.Level
+                                || x != packedTileId.X
+                                || y != packedTileId.Y
+                                || layer !=  packedTileId.Layer)
+                            {
+                                throw new InvalidDataException($"Packed tile ID mapping mismatch: {level}/{x},{y}:{layer}");
+                            }
+                        }
+                        else
+                        {
+                            var flatTile = FlatTileInfos[levelTile & ~0x80000000];
+                            var packedTileId = PackedTileIDs[flatTile.PackedTileIndex];
+
+                            if (level >= packedTileId.Level
+                                || layer != packedTileId.Layer)
+                            {
+                                throw new InvalidDataException($"Downsampled tile ID mapping mismatch: {level}/{x},{y}:{layer}");
+                            }
+                        }
+
+                        levelTileIndex++;
+                    }
+                }
+            }
+        }
     }
 }

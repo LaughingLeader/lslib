@@ -14,6 +14,8 @@ internal class CommandLineActions
     public static string DestinationPath;
     public static string PackagedFilePath;
     public static string ConformPath;
+    public static string VTConfigPath;
+    public static string VTRootPath;
 
     public static Game Game;
     public static LogLevel LogLevel;
@@ -22,6 +24,8 @@ internal class CommandLineActions
     public static PackageVersion PackageVersion;
     public static int PackagePriority;
     public static bool LegacyGuids;
+    public static bool FastBuild;
+    public static bool VTValidate;
     public static Dictionary<string, bool> GR2Options;
 
     // TODO: OSI support
@@ -63,6 +67,8 @@ internal class CommandLineActions
         CommandLineLogger.LogDebug($"Using game: {Game}");
 
         LegacyGuids = args.LegacyGuids;
+        FastBuild = args.FastBuild;
+        VTValidate = args.VTValidate;
 
         if (batchActions.Any(args.Action.Contains))
         {
@@ -91,6 +97,12 @@ internal class CommandLineActions
             CommandLineLogger.LogDebug($"Using package version: {PackageVersion}");
         }
 
+        if (args.Action == "build-vt")
+        {
+            VTConfigPath = TryToValidatePath(args.Source);
+            VTRootPath = TryToValidatePath(args.VTRoot);
+        }
+
         if (graphicsActions.Any(args.Action.Contains))
         {
             GR2Options = CommandLineArguments.GetGR2Options(args.Options);
@@ -117,7 +129,7 @@ internal class CommandLineActions
         }
 
         SourcePath = TryToValidatePath(args.Source);
-        if (args.Action != "list-package")
+        if (args.Action != "list-package" && args.Action != "build-vt")
         {
             DestinationPath = TryToValidatePath(args.Destination);
         }
@@ -217,6 +229,12 @@ internal class CommandLineActions
             case "convert-resources":
             {
                 CommandLineDataProcessor.BatchConvert();
+                break;
+            }
+
+            case "build-vt":
+            {
+                CommandLineDataProcessor.BuildVirtualTextureSet();
                 break;
             }
 

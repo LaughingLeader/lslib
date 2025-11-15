@@ -155,8 +155,10 @@ public class VertexDeduplicator
 public class VertexAnnotationSet
 {
     public string Name;
-    [Serialization(Type = MemberType.ReferenceToVariantArray)]
-    public List<object> VertexAnnotations;
+    [Serialization(Type = MemberType.ReferenceToVariantArray,
+        TypeSelector = typeof(VertexAnnotationSetSerializer), Serializer = typeof(VertexAnnotationSetSerializer),
+        Kind = SerializationKind.UserMember)]
+    public object VertexAnnotations;
     public Int32 IndicesMapFromVertexToAnnotation;
     public List<TriIndex> VertexAnnotationIndices;
 }
@@ -637,8 +639,8 @@ public class InfluencingJoints
 
     public static int[] BindJointsToRemaps(List<int> joints)
     {
-        var maxJoint = joints.Max();
-        var remaps = new int[maxJoint + 1];
+        var maxJoint = joints.Count > 0 ? joints.Max() + 1 : 0;
+        var remaps = new int[maxJoint];
         var i = 0;
 
         foreach (var joint in joints)

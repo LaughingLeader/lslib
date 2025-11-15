@@ -1,10 +1,11 @@
 ﻿using LSLib.Granny.GR2;
-using System.Text.RegularExpressions;
+using LSLib.LS;
+using SharpGLTF.Scenes;
+using SharpGLTF.Schema2;
 using SharpGLTF.Transforms;
 using System.Numerics;
-using SharpGLTF.Scenes;
-using LSLib.LS;
-using SharpGLTF.Schema2;
+using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 
 namespace LSLib.Granny.Model;
 
@@ -46,33 +47,101 @@ public class GLTFExporter
         }
     }
 
-    private void ExportMeshBinding(Model model, Skeleton skeleton, MeshBinding meshBinding, SceneBuilder scene)
+    private void ExportSkinnedMeshBinding(Model model, Skeleton skeleton, Mesh mesh, SceneBuilder scene, string meshId)
     {
-        var meshId = MeshIds[meshBinding.Mesh];
+        var gltfSkel = Skeletons[skeleton];
+        var joints = mesh.GetInfluencingJoints(skeleton);
+        var boundJoints = joints.SkeletonJoints.ToHashSet();
 
-        if (skeleton != null && meshBinding.Mesh.VertexFormat.HasBoneWeights)
+        var exporter = new GLTFMeshExporter(mesh, meshId, joints.BindRemaps);
+        var gltfMesh = exporter.Export();
+
+        gltfSkel.UsedForSkinning = true;
+
+        List<(NodeBuilder, Matrix4x4)> bindings = [];
+        foreach (var jointIndex in joints.SkeletonJoints)
         {
-            var joints = meshBinding.Mesh.GetInfluencingJoints(skeleton);
-
-            var exporter = new GLTFMeshExporter(meshBinding.Mesh, meshId, joints.BindRemaps);
-            var mesh = exporter.Export();
-
-            Skeletons[skeleton].UsedForSkinning = true;
-
-            List<(NodeBuilder, Matrix4x4)> bindings = [];
-            foreach (var jointIndex in joints.SkeletonJoints)
+            bindings.Add(gltfSkel.Joints[jointIndex]);
+        }
+            
+        // Blender excludes bones from the armature that don't have a mesh binding
+        // if the GLTF is not a skeleton-only export.
+        for (var i = 0; i < gltfSkel.Joints.Count; i++)
+        {
+            if (!boundJoints.Contains(i))
             {
-                bindings.Add(Skeletons[skeleton].Joints[jointIndex]);
+                bindings.Add(gltfSkel.Joints[i]);
+            }
+        }
+
+        var inst = scene.AddSkinnedMesh(gltfMesh, bindings.ToArray());
+        if (mesh.MorphTargets != null && mesh.MorphTargets.Count > 0)
+        {
+            inst.Content.UseMorphing().SetValue(gltfMesh.GetMorphWeights());
+        }
+    }
+
+    private void ExportRigidMeshBinding(Model model, Skeleton skeleton, Mesh mesh, SceneBuilder scene, string meshId)
+    {
+        NodeBuilder parent = null;
+
+
+        if (parent != null)
+        {
+            mesh.VertexFormat.HasBoneWeights = true;
+            foreach (var v in mesh.PrimaryVertexData.Vertices)
+            {
+                v.BoneIndices.A = 0;
+                v.BoneWeights.A = 255;
             }
 
-            scene.AddSkinnedMesh(mesh, bindings.ToArray());
+            ExportSkinnedMeshBinding(model, skeleton, mesh, scene, meshId);
         }
         else
         {
-            var exporter = new GLTFMeshExporter(meshBinding.Mesh, meshId, null);
-            var mesh = exporter.Export();
-            scene.AddRigidMesh(mesh, new AffineTransform(Matrix4x4.Identity));
+            var exporter = new GLTFMeshExporter(mesh, meshId, null);
+            var gltfMesh = exporter.Export();
+            scene.AddRigidMesh(gltfMesh, new AffineTransform(Matrix4x4.Identity));
         }
+    }
+
+    private void ExportFakeRigidMeshBinding(Model model, Skeleton skeleton, Mesh mesh, SceneBuilder scene, string meshId)
+    {
+        mesh.VertexFormat.HasBoneWeights = true;
+        foreach (var v in mesh.PrimaryVertexData.Vertices)
+        {
+            v.BoneIndices.A = 0;
+            v.BoneWeights.A = 255;
+        }
+
+        ExportSkinnedMeshBinding(model, skeleton, mesh, scene, meshId);
+    }
+
+    private void ExportMeshBinding(Model model, Skeleton skeleton, Mesh mesh, SceneBuilder scene)
+    {
+        var meshId = MeshIds[mesh];
+
+        if (skeleton != null)
+        {
+            if (mesh.VertexFormat.HasBoneWeights)
+            {
+                ExportSkinnedMeshBinding(model, skeleton, mesh, scene, meshId);
+                return;
+            }
+
+            // Detect cases where the mesh has uniform bone weights and was optimized into being a rigid mesh
+            if (skeleton != null && !skeleton.IsDummy && mesh.BoneBindings != null && mesh.BoneBindings.Count == 1)
+            {
+                var gltfSkel = Skeletons[skeleton];
+                if (gltfSkel.Joints.Exists(n => n.Item1.Name == mesh.BoneBindings[0].BoneName))
+                {
+                    ExportFakeRigidMeshBinding(model, skeleton, mesh, scene, meshId);
+                    return;
+                }
+            }
+        }
+
+        ExportRigidMeshBinding(model, skeleton, mesh, scene, meshId);
     }
 
     private GLTFSkeletonExportData ExportSkeleton(NodeBuilder root, Skeleton skeleton)
@@ -95,12 +164,25 @@ public class GLTFExporter
 
             node.LocalTransform = ToGLTFTransform(joint.Transform);
             var t = joint.InverseWorldTransform;
+
             var iwt = new Matrix4x4(
                 t[0], t[1], t[2], t[3],
                 t[4], t[5], t[6], t[7],
                 t[8], t[9], t[10], t[11],
                 t[12], t[13], t[14], t[15]
             );
+
+            // "Fix" case where the IWT stored in the GR2 accumulates precision errors
+            if (Math.Abs(iwt.M14) > 0.001f || Math.Abs(iwt.M24) > 0.001f || Math.Abs(iwt.M34) > 0.001f || Math.Abs(iwt.M44 - 1.0f) > 0.001f)
+            {
+                throw new InvalidDataException($"IWT on joint '{joint.Name}' is not affine");
+            }
+
+            iwt.M14 = 0.0f;
+            iwt.M24 = 0.0f;
+            iwt.M34 = 0.0f;
+            iwt.M44 = 1.0f;
+
             joints.Add((node, iwt));
             names.Add(joint.Name, node);
         }
@@ -155,6 +237,15 @@ public class GLTFExporter
         {
             ext.BoneOrder[joint.Name] = joint.ExportIndex + 1;
         }
+
+        ext.BoneScale = [];
+        foreach (var joint in skeleton.Bones)
+        {
+            if (joint.Transform.HasScaleShear)
+            {
+                ext.BoneScale[joint.Name] = joint.Transform.ScaleShear[0, 0];
+            }
+        }
     }
 
     private void ExportMeshExtensions(Mesh mesh, GLTFMeshExtensions ext)
@@ -181,6 +272,21 @@ public class GLTFExporter
         }
     }
 
+    private void ExportMorphTargetExtras(Mesh grMesh, SharpGLTF.Schema2.Mesh mesh)
+    {
+        var targetNames = new JsonArray();
+        foreach (var target in grMesh.MorphTargets)
+        {
+            targetNames.Add(target.ScalarName);
+        }
+
+        var extras = new JsonObject
+        {
+            ["targetNames"] = targetNames
+        };
+        mesh.Extras = extras;
+    }
+
     private void ExportExtensions(Root root, ModelRoot modelRoot)
     {
         var sceneExt = modelRoot.LogicalScenes.First().UseExtension<GLTFSceneExtensions>();
@@ -194,6 +300,12 @@ public class GLTFExporter
                 {
                     var meshExt = mesh.UseExtension<GLTFMeshExtensions>();
                     ExportMeshExtensions(grMesh, meshExt);
+
+                    if (grMesh.MorphTargets != null && grMesh.MorphTargets.Count > 0)
+                    {
+                        ExportMorphTargetExtras(grMesh, mesh);
+                    }
+
                     break;
                 }
             }
@@ -224,7 +336,7 @@ public class GLTFExporter
 
         foreach (var meshBinding in model.MeshBindings ?? [])
         {
-            ExportMeshBinding(model, skel, meshBinding, scene);
+            ExportMeshBinding(model, skel, meshBinding.Mesh, scene);
         }
     }
 
@@ -241,19 +353,19 @@ public class GLTFExporter
             if (frame.HasTranslation)
             {
                 var v = frame.Translation;
-                translate.SetPoint(time, v.ToNumerics(), true);
+                translate.SetPoint(time, v.ToNumerics(), keyframes.Interpolated);
             }
 
             if (frame.HasRotation)
             {
                 var q = frame.Rotation;
-                rotation.SetPoint(time, q.ToNumerics(), true);
+                rotation.SetPoint(time, q.ToNumerics(), keyframes.Interpolated);
             }
 
             if (frame.HasScaleShear)
             {
                 var m = frame.ScaleShear;
-                scale.SetPoint(time, new Vector3(m[0,0], m[1,1], m[2,2]), true);
+                scale.SetPoint(time, new Vector3(m[0,0], m[1,1], m[2,2]), keyframes.Interpolated);
             }
         }
     }

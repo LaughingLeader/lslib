@@ -74,8 +74,8 @@ public class ExporterOptions
     public DivinityModelFlag ModelType = 0;
     // Flip mesh on X axis
     public bool FlipMesh = false;
-    // Flip skeleton on X axis
-    public bool FlipSkeleton = false;
+    // Mirror left-hand and right-hand bones on skeleton
+    public bool MirrorSkeleton = false;
     // Apply Y-up transforms on skeletons?
     public bool TransformSkeletons = true;
     // Ignore cases where we couldn't calculate tangents from UVs because of non-manifold geometry
@@ -336,7 +336,7 @@ public class Exporter
 
                 var keyframes = track.ToKeyframes();
                 keyframes.SwapBindPose(bone.OriginalTransform, conformingBone.Transform.ToMatrix4());
-                var newTrack = TransformTrack.FromKeyframes(keyframes);
+                var newTrack = TransformTrack.FromKeyframes(keyframes, null);
                 newTrack.Flags = track.Flags;
                 newTrack.Name = track.Name;
                 newTrack.ParentAnimation = track.ParentAnimation;
@@ -347,6 +347,8 @@ public class Exporter
 
     private void ConformSkeleton(Skeleton skeleton, Skeleton conformToSkeleton)
     {
+        // Need to copy skeleton name, as animation track groups are bound by name
+        skeleton.Name = conformToSkeleton.Name;
         skeleton.LODType = conformToSkeleton.LODType;
 
         // TODO: Tolerate missing bones?
@@ -720,7 +722,7 @@ public class Exporter
 
         foreach (var track in Root.TrackGroups ?? [])
         {
-            if (track.TransformTracks.Count > 0)
+            if (track.TransformTracks != null && track.TransformTracks.Count > 0)
             {
                 hasSkinnedVerts = true;
             }
@@ -795,9 +797,9 @@ public class Exporter
             GenerateDummySkeleton(Root);
         }
 
-        if (Options.FlipMesh || Options.FlipSkeleton)
+        if (Options.FlipMesh || Options.MirrorSkeleton)
         {
-            Root.Flip(Options.FlipMesh, Options.FlipSkeleton);
+            Root.Flip(Options.FlipMesh, Options.MirrorSkeleton);
         }
 
         foreach (var skeleton in Root.Skeletons ?? [])
